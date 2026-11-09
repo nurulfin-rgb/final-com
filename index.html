@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FINAL COM V 2.1</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen pb-12">
+
+    <!-- HEADER APLIKASI -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-start">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md">
+                        <i class="fa-solid fa-calculator text-sm"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="text-sm sm:text-base font-black tracking-tight text-slate-900">FINAL COM V 2.1</h1>
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-700">ONLINE</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 font-medium">Database Spreadsheet & Struk Bluetooth</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TOMBOL AKSI UTAMA -->
+            <div class="flex items-center space-x-2 w-full sm:w-auto justify-end flex-wrap gap-1.5">
+                <button type="button" onclick="togglePrivacyMode()" id="eyeBtn" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition flex items-center space-x-1 shadow-sm cursor-pointer">
+                    <i id="eyeIcon" class="fa-solid fa-eye-slash"></i> <span id="eyeText">Sembunyikan Saldo</span>
+                </button>
+                <button type="button" onclick="openApiModal()" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition flex items-center space-x-1 shadow-sm cursor-pointer">
+                    <i class="fa-solid fa-cloud text-blue-600"></i> <span>API Sheet</span>
+                </button>
+                <button type="button" onclick="openContactModal()" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition flex items-center space-x-1 shadow-sm cursor-pointer">
+                    <i class="fa-solid fa-address-book text-slate-600"></i> <span>Kontak</span>
+                </button>
+                <button type="button" onclick="openTransactionModal()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1 shadow-sm cursor-pointer">
+                    <i class="fa-solid fa-plus"></i> <span>Transaksi Baru</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- KONTEN UTAMA -->
+    <main class="max-w-7xl mx-auto px-4 py-5 space-y-5">
+
+        <!-- STATUS CLOUD SPREADSHEET -->
+        <div id="cloudStatusBanner" class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                <span id="syncStatusText">Google Spreadsheet Terhubung: Sinkronisasi Cloud Aktif.</span>
+            </div>
+            <button type="button" onclick="openApiModal()" class="text-emerald-700 hover:underline font-bold cursor-pointer">Pengaturan API</button>
+        </div>
+
+        <!-- KARTU INFORMASI SALDO (RINGKAS & MOBILE FRIENDLY) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Saldo Total</div>
+                <div id="cardSaldoTotal" class="text-lg sm:text-xl font-black text-blue-600">Rp 0</div>
+                <div class="text-[10px] text-slate-500 mt-1 font-medium truncate">Terhubung Spreadsheet</div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Saldo Cash / Modal</div>
+                <div id="cardSaldoCash" class="text-lg sm:text-xl font-black text-slate-900">Rp 0</div>
+                <button type="button" onclick="openEditCashModal()" class="text-[11px] text-blue-600 hover:underline font-bold mt-1 inline-flex items-center space-x-1 cursor-pointer">
+                    <span>Atur Saldo Cash</span> <i class="fa-solid fa-pen text-[9px]"></i>
+                </button>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Total Setor Tunai</div>
+                <div id="cardTotalSetor" class="text-lg sm:text-xl font-black text-emerald-600">Rp 0</div>
+                <button type="button" onclick="openEditSetorModal()" class="text-[11px] text-blue-600 hover:underline font-bold mt-1 inline-flex items-center space-x-1 cursor-pointer">
+                    <span>Atur Setor Tunai</span> <i class="fa-solid fa-pen text-[9px]"></i>
+                </button>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Total Pengeluaran</div>
+                <div id="cardTotalPengeluaran" class="text-lg sm:text-xl font-black text-rose-600">Rp 0</div>
+                <div class="text-[10px] text-slate-500 mt-1 font-medium truncate">Memotong Saldo Cash Direct</div>
+            </div>
+        </div>
+
+        <!-- TABEL RIWAYAT TRANSAKSI KEUANGAN -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between flex-wrap gap-3">
+                <h2 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-clock-rotate-left text-blue-600"></i>
+                    <span>Riwayat Transaksi Keuangan</span>
+                </h2>
+                <div class="w-full sm:w-64">
+                    <input type="text" id="searchTrx" oninput="filterTransactions()" placeholder="Cari transaksi..." class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase">
+                            <th class="pb-3 px-2">Tanggal & Waktu</th>
+                            <th class="pb-3 px-2">Tipe</th>
+                            <th class="pb-3 px-2">Detail Penerima / Rekening</th>
+                            <th class="pb-3 px-2 text-right">Nominal</th>
+                            <th class="pb-3 px-2 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionTableBody" class="text-sm divide-y divide-slate-50">
+                        <tr>
+                            <td colspan="5" class="text-center py-8 text-slate-400 font-medium text-xs">Belum ada transaksi.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center space-x-2 text-xs font-medium text-slate-600">
+                    <i class="fa-solid fa-bluetooth text-blue-600"></i>
+                    <span id="printerStatus">Status: Printer Belum Terhubung</span>
+                </div>
+                <button type="button" onclick="connectBluetoothPrinter()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition shadow-sm cursor-pointer">
+                    Hubungkan Printer Bluetooth
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL FORM TRANSAKSI BARU -->
+    <div id="transactionModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-900">Form Transaksi Baru</h3>
+                <button type="button" onclick="closeTransactionModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="transactionForm" onsubmit="handleTransaction(event)" class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Tipe Transaksi</label>
+                        <select id="trxType" onchange="onTrxTypeChange()" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="SETOR TUNAI">SETOR TUNAI</option>
+                            <option value="PENGELUARAN">PENGELUARAN</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Nominal (Rp)</label>
+                        <input type="text" id="trxAmountDisplay" required placeholder="0" oninput="formatInputNominal(this)" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-base font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="hidden" id="trxAmount" value="0">
+                    </div>
+                </div>
+
+                <div id="penerimaSection" class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                    <div class="text-xs font-bold text-slate-700 uppercase">Data Penerima & Kontak Saved</div>
+                    <div>
+                        <input type="text" id="searchContactInput" oninput="filterContactsList()" placeholder="🔍 Cari Kontak Tersimpan..." class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div id="contactDropdownList" class="max-h-32 overflow-y-auto mt-1 space-y-1 hidden bg-white border border-slate-200 rounded-lg p-1 shadow-sm"></div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nama Pemilik</label>
+                            <input type="text" id="trxRecipient" placeholder="Nama Penerima" class="w-full px-2.5 py-2 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nama Bank</label>
+                            <select id="trxBank" class="w-full px-2.5 py-2 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none">
+                                <option value="">-- Pilih Bank --</option>
+                                <optgroup label="Bank Nasional Utama">
+                                    <option value="BANK BRI">BANK BRI</option>
+                                    <option value="BANK BNI">BANK BNI</option>
+                                    <option value="BANK MANDIRI">BANK MANDIRI</option>
+                                    <option value="BANK BCA">BANK BCA</option>
+                                    <option value="BANK BSI (SYARIAH INDONESIA)">BANK BSI (SYARIAH INDONESIA)</option>
+                                    <option value="BANK CIMB NIAGA">BANK CIMB NIAGA</option>
+                                    <option value="BANK DANAMON">BANK DANAMON</option>
+                                    <option value="BANK PERMATA">BANK PERMATA</option>
+                                    <option value="BANK PANIN">BANK PANIN</option>
+                                    <option value="BANK BTN">BANK BTN</option>
+                                    <option value="BANK OCBC NISP">BANK OCBC NISP</option>
+                                    <option value="MAYBANK INDONESIA">MAYBANK INDONESIA</option>
+                                    <option value="BANK MEGA">BANK MEGA</option>
+                                    <option value="BANK SINARMAS">BANK SINARMAS</option>
+                                    <option value="BANK BTPN">BANK BTPN</option>
+                                    <option value="BANK COMMONWEALTH">BANK COMMONWEALTH</option>
+                                    <option value="BANK MUAMALAT">BANK MUAMALAT</option>
+                                    <option value="BANK UOB INDONESIA">BANK UOB INDONESIA</option>
+                                    <option value="BANK DBS INDONESIA">BANK DBS INDONESIA</option>
+                                </optgroup>
+                                <optgroup label="Bank Digital / Neo Bank">
+                                    <option value="BANK JAGO">BANK JAGO</option>
+                                    <option value="SEABANK INDONESIA">SEABANK INDONESIA</option>
+                                    <option value="BANK NEO COMMERCE (BYNC)">BANK NEO COMMERCE (BYNC)</option>
+                                    <option value="BLU BY BCA DIGITAL">BLU BY BCA DIGITAL</option>
+                                    <option value="ALLO BANK">ALLO BANK</option>
+                                    <option value="DIGIBANK BY DBS">DIGIBANK BY DBS</option>
+                                    <option value="LINE BANK BY HANA">LINE BANK BY HANA</option>
+                                    <option value="JENIUS (BTPN)">JENIUS (BTPN)</option>
+                                    <option value="BANK ALADIN SYARIAH">BANK ALADIN SYARIAH</option>
+                                    <option value="SUPERBANK">SUPERBANK</option>
+                                </optgroup>
+                                <optgroup label="Bank Pembangunan Daerah (BPD)">
+                                    <option value="BANK JATIM">BANK JATIM</option>
+                                    <option value="BANK JATENG">BANK JATENG</option>
+                                    <option value="BANK BJB (JABAR BANTEN)">BANK BJB (JABAR BANTEN)</option>
+                                    <option value="BANK DKI">BANK DKI</option>
+                                    <option value="BANK DIY">BANK DIY</option>
+                                    <option value="BANK SUMUT">BANK SUMUT</option>
+                                    <option value="BANK SUMSEL BABEL">BANK SUMSEL BABEL</option>
+                                    <option value="BANK KALBAR">BANK KALBAR</option>
+                                    <option value="BANK KALTENG">BANK KALTENG</option>
+                                    <option value="BANK KALTIMTARA">BANK KALTIMTARA</option>
+                                    <option value="BANK BALI">BANK BALI</option>
+                                    <option value="BANK NTB SYARIAH">BANK NTB SYARIAH</option>
+                                    <option value="BANK NTT">BANK NTT</option>
+                                    <option value="BANK SULSELBAR">BANK SULSELBAR</option>
+                                    <option value="BANK PAPUA">BANK PAPUA</option>
+                                    <option value="BANK ACEH SYARIAH">BANK ACEH SYARIAH</option>
+                                    <option value="BANK LAMPUNG">BANK LAMPUNG</option>
+                                    <option value="BANK RIAU KEPRI">BANK RIAU KEPRI</option>
+                                </optgroup>
+                                <optgroup label="Dompet Digital / E-Wallet">
+                                    <option value="DANA">DANA</option>
+                                    <option value="OVO">OVO</option>
+                                    <option value="GOPAY">GOPAY</option>
+                                    <option value="SHOPEEPAY">SHOPEEPAY</option>
+                                    <option value="LINKAJA">LINKAJA</option>
+                                    <option value="I-SAKU">I-SAKU</option>
+                                </optgroup>
+                                <optgroup label="Lainnya">
+                                    <option value="LAINNYA / LAIN-LAIN">LAINNYA / LAIN-LAIN</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">No Rekening</label>
+                            <input type="text" id="trxAccountNo" placeholder="No Rekening" class="w-full px-2.5 py-2 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Nama Pengirim</label>
+                        <select id="trxSender" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="AHMAD NURUL ARIFIN">AHMAD NURUL ARIFIN</option>
+                            <option value="ALFI MUSFIROH">ALFI MUSFIROH</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Keterangan / Catatan</label>
+                        <input type="text" id="trxNote" placeholder="Catatan opsional..." class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeTransactionModal()" class="px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl text-xs font-bold cursor-pointer">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer">Simpan Transaksi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL PRATINJAU STRUK THERMAL -->
+    <div id="receiptModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+            <h3 class="text-base font-bold text-slate-900 text-center">Pratinjau Struk Thermal</h3>
+            
+            <div id="receiptPreviewBox" class="bg-white text-slate-900 font-mono text-[11px] p-5 rounded-xl border border-slate-200 shadow-sm leading-relaxed text-center space-y-2">
+                <!-- ARIFIN COMPUTER (dilebarkan ke atas & ditebalkan) -->
+                <div class="font-black text-sm tracking-wider text-slate-900 scale-y-125 transform origin-center py-0.5">ARIFIN COMPUTER</div>
+                <div class="text-[10px] text-slate-500 mt-1">Transfer & Setor Tunai<br>Jadi Lebih Dekat</div>
+                <div class="border-t-2 border-dashed border-slate-700 my-3"></div>
+                <!-- SETOR TUNAI (dilebarkan ke atas & ditebalkan) -->
+                <div class="text-sm font-black tracking-widest uppercase text-slate-900 scale-y-125 transform origin-center py-0.5" id="recTypeTitle">SETOR TUNAI</div>
+                <div class="text-[10px] text-slate-500 mt-1" id="recTimeStr">09/11/2026 16:07</div>
+                <div class="text-[10px] text-slate-500 font-semibold" id="recProcessId">ID PROSES X2HZAVLN</div>
+                <div class="border-t-2 border-dashed border-slate-700 my-3"></div>
+                
+                <!-- NOMINAL DENGAN SPASI DI BISA DI BAWAH -->
+                <div class="text-sm font-black text-blue-600 my-2" id="recNominal">NOMINAL : Rp 100.000</div>
+                <div class="h-2"></div> <!-- Spasi setelah nominal -->
+                
+                <!-- PENERIMA ENTER KETIK A/N -->
+                <div id="recRecipientSection" class="space-y-0.5 text-xs my-2">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase">PENERIMA</div>
+                    <div class="font-bold" id="recRecipientName">A/N a</div>
+                    <div class="font-semibold uppercase" id="recBankInfo">BANK BRI</div>
+                    <div class="text-[11px]" id="recAccountNo">REK: 14534534</div>
+                </div>
+
+                <div class="h-2"></div> <!-- Spasi di atas pengirim -->
+
+                <!-- PENGIRIM ENTER KETIK A/N -->
+                <div class="space-y-0.5 text-xs my-2">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase">PENGIRIM</div>
+                    <div class="font-bold uppercase" id="recSenderName">A/N AHMAD NURUL ARIFIN</div>
+                </div>
+
+                <div class="border-t-2 border-dashed border-slate-700 my-3"></div>
+                
+                <!-- TULISAN BERHASIL DIBESARKAN & DILEBARKAN KE ATAS -->
+                <div class="pt-2 pb-1">
+                    <div class="text-base font-black tracking-widest text-emerald-600 uppercase scale-y-125 transform origin-center">BERHASIL</div>
+                </div>
+                
+                <div class="text-[9px] text-slate-400 mt-2">SIMPAN STRUK INI SEBAGAI BUKTI TRANSAKSI YANG SAH</div>
+                <div class="text-[10px] font-bold text-slate-600 mt-1">WA : 085851462619</div>
+            </div>
+
+            <div class="flex space-x-2 pt-2">
+                <button type="button" onclick="closeReceiptModal()" class="flex-1 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs font-bold cursor-pointer">Tutup</button>
+                <button type="button" onclick="window.print()" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1 cursor-pointer">
+                    <i class="fa-solid fa-print"></i> <span>Print Web</span>
+                </button>
+                <button type="button" onclick="printCurrentReceipt()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 shadow-md cursor-pointer">
+                    <i class="fa-solid fa-bluetooth"></i> <span>Cetak Bluetooth</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL API SPREADSHEET SETTING -->
+    <div id="apiModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
+            <h3 class="text-base font-bold text-slate-900">Atur Google Apps Script API URL</h3>
+            <p class="text-xs text-slate-500">Masukkan Web App URL dari Google Sheets Anda.</p>
+            <input type="text" id="apiUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <div class="flex justify-end space-x-2 pt-2">
+                <button type="button" onclick="closeApiModal()" class="px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl text-xs font-bold cursor-pointer">Batal</button>
+                <button type="button" onclick="saveApiUrl()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold cursor-pointer">Simpan URL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL KELOLA KONTAK -->
+    <div id="contactModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-900">Kelola Kontak & Rekening Saved</h3>
+                <button type="button" onclick="closeContactModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3">
+                <input type="text" id="newContactName" placeholder="Nama Pemilik Rekening" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs">
+                <select id="newContactBank" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs bg-white">
+                    <option value="BANK BRI">BANK BRI</option>
+                    <option value="BANK BNI">BANK BNI</option>
+                    <option value="BANK MANDIRI">BANK MANDIRI</option>
+                    <option value="BANK BCA">BANK BCA</option>
+                    <option value="BANK BSI (SYARIAH INDONESIA)">BANK BSI (SYARIAH INDONESIA)</option>
+                    <option value="BANK CIMB NIAGA">BANK CIMB NIAGA</option>
+                    <option value="BANK JAGO">BANK JAGO</option>
+                    <option value="SEABANK INDONESIA">SEABANK INDONESIA</option>
+                    <option value="BLU BY BCA DIGITAL">BLU BY BCA DIGITAL</option>
+                    <option value="ALLO BANK">ALLO BANK</option>
+                    <option value="BANK JATIM">BANK JATIM</option>
+                    <option value="BANK JATENG">BANK JATENG</option>
+                    <option value="BANK BJB (JABAR BANTEN)">BANK BJB (JABAR BANTEN)</option>
+                    <option value="BANK DKI">BANK DKI</option>
+                    <option value="DANA">DANA</option>
+                    <option value="OVO">OVO</option>
+                    <option value="GOPAY">GOPAY</option>
+                    <option value="SHOPEEPAY">SHOPEEPAY</option>
+                    <option value="LINKAJA">LINKAJA</option>
+                    <option value="LAINNYA / LAIN-LAIN">LAINNYA / LAIN-LAIN</option>
+                </select>
+                <input type="text" id="newContactAccount" placeholder="Nomor Rekening / No HP" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs">
+                <button type="button" onclick="saveNewContact()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold cursor-pointer">Simpan Kontak Baru</button>
+            </div>
+            <div class="pt-3 border-t border-slate-100">
+                <div class="text-xs font-bold text-slate-700 mb-2">Daftar Kontak Tersimpan:</div>
+                <div id="contactListContainer" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ATUR SALDO CASH -->
+    <div id="cashModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+            <h3 class="text-base font-bold text-slate-900">Atur Saldo Cash / Modal</h3>
+            <input type="text" id="newCashInputDisplay" placeholder="0" oninput="formatEditCash(this)" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-base font-black focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="hidden" id="newCashInput" value="0">
+            <div class="flex justify-end space-x-2 pt-2">
+                <button type="button" onclick="closeEditCashModal()" class="px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl text-xs font-bold cursor-pointer">Batal</button>
+                <button type="button" onclick="saveNewCash()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold cursor-pointer">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ATUR TOTAL SETOR TUNAI -->
+    <div id="setorModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+            <h3 class="text-base font-bold text-slate-900">Atur Total Setor Tunai</h3>
+            <input type="text" id="newSetorInputDisplay" placeholder="0" oninput="formatEditSetor(this)" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-base font-black focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="hidden" id="newSetorInput" value="0">
+            <div class="flex justify-end space-x-2 pt-2">
+                <button type="button" onclick="closeEditSetorModal()" class="px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl text-xs font-bold cursor-pointer">Batal</button>
+                <button type="button" onclick="saveNewSetor()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold cursor-pointer">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL KONFIRMASI HAPUS -->
+    <div id="deleteConfirmModal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-xs w-full p-5 space-y-4 shadow-2xl text-center">
+            <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-trash-can"></i>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-slate-900">Hapus Transaksi Ini?</h3>
+                <p class="text-xs text-slate-500 mt-1">Saldo akan dikembalikan secara otomatis ke akun terkait.</p>
+            </div>
+            <div class="flex space-x-2 pt-1">
+                <button type="button" onclick="closeDeleteConfirmModal()" class="flex-1 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl text-xs font-bold cursor-pointer">Batal</button>
+                <button type="button" id="confirmDeleteBtn" class="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT LOGIKA APLIKASI -->
+    <script>
+        let appData = {
+            cashBalance: 0,
+            setorTotal: 0,
+            transactions: [],
+            contacts: []
+        };
+        let apiUrl = localStorage.getItem('finalcom_api_url') || '';
+        let bluetoothDevice = null;
+        let bluetoothCharacteristic = null;
+        let isBalanceHidden = false;
+        let lastPrintedTrx = null;
+        let pendingDeleteId = null;
+
+        window.onload = function() {
+            loadLocalData();
+            if (apiUrl) {
+                syncDataCloud();
+            } else {
+                updateUI();
+            }
+        };
+
+        function togglePrivacyMode() {
+            isBalanceHidden = !isBalanceHidden;
+            const textEl = document.getElementById('eyeText');
+            const iconEl = document.getElementById('eyeIcon');
+            if (isBalanceHidden) {
+                if (textEl) textEl.innerText = "Tampilkan Saldo";
+                if (iconEl) iconEl.className = "fa-solid fa-eye";
+            } else {
+                if (textEl) textEl.innerText = "Sembunyikan Saldo";
+                if (iconEl) iconEl.className = "fa-solid fa-eye-slash";
+            }
+            updateUI();
+        }
+
+        function formatRp(amount) {
+            if (isBalanceHidden) return "Rp ••••••••";
+            return "Rp " + Number(amount).toLocaleString('id-ID');
+        }
+
+        function formatInputNominal(el) {
+            let val = el.value.replace(/[^0-9]/g, '');
+            if (!val) {
+                el.value = '';
+                document.getElementById('trxAmount').value = 0;
+                return;
+            }
+            let num = parseInt(val, 10);
+            el.value = num.toLocaleString('id-ID');
+            document.getElementById('trxAmount').value = num;
+        }
+
+        function formatEditCash(el) {
+            let val = el.value.replace(/[^0-9]/g, '');
+            if (!val) { el.value = ''; document.getElementById('newCashInput').value = 0; return; }
+            let num = parseInt(val, 10);
+            el.value = num.toLocaleString('id-ID');
+            document.getElementById('newCashInput').value = num;
+        }
+
+        function formatEditSetor(el) {
+            let val = el.value.replace(/[^0-9]/g, '');
+            if (!val) { el.value = ''; document.getElementById('newSetorInput').value = 0; return; }
+            let num = parseInt(val, 10);
+            el.value = num.toLocaleString('id-ID');
+            document.getElementById('newSetorInput').value = num;
+        }
+
+        function loadLocalData() {
+            const saved = localStorage.getItem('finalcom_app_data');
+            if (saved) {
+                appData = JSON.parse(saved);
+                if (appData.transactions) {
+                    appData.transactions.forEach(t => {
+                        if (!t.id) {
+                            t.id = 'TRX-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+                        }
+                    });
+                }
+            }
+        }
+
+        function saveLocalData() {
+            localStorage.setItem('finalcom_app_data', JSON.stringify(appData));
+        }
+
+        function updateUI() {
+            let totalSaldo = appData.cashBalance + appData.setorTotal;
+            document.getElementById('cardSaldoTotal').innerText = formatRp(totalSaldo);
+            document.getElementById('cardSaldoCash').innerText = formatRp(appData.cashBalance);
+            document.getElementById('cardTotalSetor').innerText = formatRp(appData.setorTotal);
+
+            let totalPengeluaran = appData.transactions
+                .filter(t => t.type === 'PENGELUARAN')
+                .reduce((sum, t) => sum + Number(t.amount), 0);
+            document.getElementById('cardTotalPengeluaran').innerText = formatRp(totalPengeluaran);
+
+            renderTransactions(appData.transactions);
+            renderContactsList();
+        }
+
+        function renderTransactions(list) {
+            const tbody = document.getElementById('transactionTableBody');
+            if (!list || list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-slate-400 font-medium text-xs">Belum ada transaksi.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = list.map((t, idx) => {
+                let badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
+                if (t.type === 'PENGELUARAN') badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
+
+                let safeId = t.id ? t.id : `IDX_${idx}`;
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition border-b border-slate-50">
+                        <td class="py-3 px-2 text-xs text-slate-500 font-medium">${t.time}</td>
+                        <td class="py-3 px-2"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeColor}">${t.type}</span></td>
+                        <td class="py-3 px-2">
+                            <div class="font-bold text-slate-800 text-xs">${t.recipient || t.note || '-'}</div>
+                            <div class="text-[11px] text-slate-500">${t.bank ? t.bank + ' - ' + t.account : (t.detail || '')}</div>
+                        </td>
+                        <td class="py-3 px-2 text-right font-bold text-xs ${t.type === 'SETOR TUNAI' ? 'text-emerald-600' : 'text-rose-600'}">
+                            ${t.type === 'SETOR TUNAI' ? '+' : '-'} ${formatRp(t.amount)}
+                        </td>
+                        <td class="py-3 px-2 text-center space-x-1">
+                            <button type="button" onclick="openReceiptModalById('${safeId}')" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs cursor-pointer" title="Cetak Struk">
+                                <i class="fa-solid fa-print"></i>
+                            </button>
+                            <button type="button" onclick="confirmDeleteTransaction('${safeId}')" class="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs cursor-pointer inline-flex items-center justify-center" title="Hapus">
+                                <i class="fa-solid fa-trash pointer-events-none"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterTransactions() {
+            const query = document.getElementById('searchTrx').value.toLowerCase();
+            const filtered = appData.transactions.filter(t => 
+                (t.recipient && t.recipient.toLowerCase().includes(query)) ||
+                (t.bank && t.bank.toLowerCase().includes(query)) ||
+                (t.note && t.note.toLowerCase().includes(query)) ||
+                (t.type && t.type.toLowerCase().includes(query))
+            );
+            renderTransactions(filtered);
+        }
+
+        function onTrxTypeChange() {
+            const type = document.getElementById('trxType').value;
+            const penerimaSection = document.getElementById('penerimaSection');
+            if (type === 'PENGELUARAN') {
+                penerimaSection.classList.add('hidden');
+            } else {
+                penerimaSection.classList.remove('hidden');
+            }
+        }
+
+        function openTransactionModal() { 
+            document.getElementById('trxAmountDisplay').value = '';
+            document.getElementById('trxAmount').value = 0;
+            document.getElementById('trxNote').value = '';
+            document.getElementById('transactionModal').classList.remove('hidden'); 
+        }
+        function closeTransactionModal() { document.getElementById('transactionModal').classList.add('hidden'); }
+
+        function handleTransaction(e) {
+            e.preventDefault();
+            const type = document.getElementById('trxType').value;
+            const amount = Number(document.getElementById('trxAmount').value);
+            if (!amount || amount <= 0) {
+                alert('Masukkan nominal transaksi yang valid!');
+                return;
+            }
+
+            const now = new Date();
+            const timeStr = now.toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric'}) + ' ' + now.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+            const uniqueId = 'TRX-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+            const processId = Math.random().toString(36).substr(2, 8).toUpperCase();
+
+            let recipient = '';
+            let bank = '';
+            let account = '';
+            let note = '';
+            let detail = '';
+
+            if (type === 'PENGELUARAN') {
+                note = document.getElementById('trxNote').value || 'Biaya Ops';
+                detail = note;
+                // LOGIKA PENGELUARAN:
+                // Saldo Cash BERKURANG, Saldo Setor Tunai BERTAMBAH
+                appData.cashBalance -= amount;
+                appData.setorTotal += amount;
+            } else {
+                recipient = document.getElementById('trxRecipient').value || '-';
+                bank = document.getElementById('trxBank').value || '-';
+                account = document.getElementById('trxAccountNo').value || '-';
+                note = document.getElementById('trxNote').value || '';
+                detail = `${recipient} (${bank} - ${account})`;
+                
+                // LOGIKA SETOR TUNAI:
+                // Saldo Setor Tunai BERKURANG, Saldo Cash BERTAMBAH
+                appData.setorTotal -= amount;
+                appData.cashBalance += amount;
+
+                // OTS (Auto Save Kontak Baru Jika Ditulis Manual)
+                if (recipient !== '-' && account !== '-') {
+                    if (!appData.contacts) appData.contacts = [];
+                    const exists = appData.contacts.some(c => 
+                        c.account.trim() === account.trim() && 
+                        c.bank.trim() === bank.trim()
+                    );
+                    if (!exists) {
+                        appData.contacts.push({
+                            name: recipient,
+                            bank: bank,
+                            account: account
+                        });
+                    }
+                }
+            }
+
+            const sender = document.getElementById('trxSender').value;
+
+            const newTrx = {
+                id: uniqueId,
+                processId: processId,
+                time: timeStr,
+                type: type,
+                amount: amount,
+                recipient: recipient,
+                bank: bank,
+                account: account,
+                note: note,
+                sender: sender,
+                detail: detail
+            };
+
+            appData.transactions.unshift(newTrx);
+            saveLocalData();
+            updateUI();
+            pushDataCloud();
+            closeTransactionModal();
+
+            lastPrintedTrx = newTrx;
+            openReceiptModal(newTrx);
+        }
+
+        function confirmDeleteTransaction(identifier) {
+            pendingDeleteId = identifier;
+            const modal = document.getElementById('deleteConfirmModal');
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+            
+            confirmBtn.onclick = function() {
+                executeDeleteTransaction(pendingDeleteId);
+                closeDeleteConfirmModal();
+            };
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeDeleteConfirmModal() {
+            document.getElementById('deleteConfirmModal').classList.add('hidden');
+            pendingDeleteId = null;
+        }
+
+        function executeDeleteTransaction(identifier) {
+            let idx = -1;
+
+            if (typeof identifier === 'string' && identifier.startsWith('IDX_')) {
+                idx = parseInt(identifier.replace('IDX_', ''), 10);
+            } else {
+                idx = appData.transactions.findIndex(t => t.id === identifier);
+            }
+
+            if (idx !== -1 && idx >= 0 && idx < appData.transactions.length) {
+                const t = appData.transactions[idx];
+                const amount = Number(t.amount);
+                
+                // KEMBALIKAN SALDO KETIKA DIHAPUS:
+                if (t.type === 'SETOR TUNAI') {
+                    // Setor Tunai dihapus -> Saldo Setor Tunai bertambah kembali, Cash berkurang kembali
+                    appData.setorTotal += amount;
+                    appData.cashBalance -= amount;
+                } else if (t.type === 'PENGELUARAN') {
+                    // Pengeluaran dihapus -> Cash bertambah kembali, Saldo Setor Tunai berkurang kembali
+                    appData.cashBalance += amount;
+                    appData.setorTotal -= amount;
+                }
+                
+                appData.transactions.splice(idx, 1);
+                saveLocalData();
+                updateUI();
+                pushDataCloud();
+            }
+        }
+
+        function openReceiptModal(t) {
+            lastPrintedTrx = t;
+            document.getElementById('recTypeTitle').innerText = t.type;
+            document.getElementById('recTimeStr').innerText = t.time;
+            document.getElementById('recProcessId').innerText = 'ID PROSES ' + (t.processId || 'X2HZAVLN');
+            document.getElementById('recNominal').innerText = 'NOMINAL : Rp ' + Number(t.amount).toLocaleString('id-ID');
+            document.getElementById('recSenderName').innerText = 'A/N ' + (t.sender || 'AHMAD NURUL ARIFIN');
+
+            const recSec = document.getElementById('recRecipientSection');
+            if (t.type === 'SETOR TUNAI') {
+                recSec.style.display = 'block';
+                document.getElementById('recRecipientName').innerText = 'A/N ' + t.recipient;
+                document.getElementById('recBankInfo').innerText = 'BANK ' + t.bank;
+                document.getElementById('recAccountNo').innerText = 'REK: ' + t.account;
+            } else {
+                recSec.style.display = 'none';
+            }
+
+            document.getElementById('receiptModal').classList.remove('hidden');
+        }
+
+        function openReceiptModalById(id) {
+            const t = appData.transactions.find(item => item.id === id);
+            if (t) openReceiptModal(t);
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receiptModal').classList.add('hidden');
+        }
+
+        async function printCurrentReceipt() {
+            if (!lastPrintedTrx) return;
+            if (!bluetoothCharacteristic) {
+                alert('Printer Bluetooth belum terhubung! Klik "Hubungkan Printer Bluetooth" di halaman utama terlebih dahulu.');
+                return;
+            }
+            try {
+                let encoder = new TextEncoder();
+                let t = lastPrintedTrx;
+                let commands = [];
+                
+                // Reset Printer
+                commands.push(new Uint8Array([0x1B, 0x40]));
+                // Rata Tengah
+                commands.push(new Uint8Array([0x1B, 0x61, 0x01]));
+                
+                // ARIFIN COMPUTER (Bold + Double Height Mode: ESC ! 0x10)
+                commands.push(new Uint8Array([0x1B, 0x45, 0x01])); // Bold ON
+                commands.push(new Uint8Array([0x1B, 0x21, 0x10])); // Double Height
+                commands.push(encoder.encode("ARIFIN COMPUTER\n"));
+                
+                // Reset to Normal
+                commands.push(new Uint8Array([0x1B, 0x45, 0x00])); // Bold OFF
+                commands.push(new Uint8Array([0x1B, 0x21, 0x00])); // Normal Height
+                commands.push(encoder.encode("Transfer & Setor Tunai\nJadi Lebih Dekat\n"));
+                commands.push(encoder.encode("--------------------------------\n"));
+                
+                // SETOR TUNAI / TIPE TRANSAKSI (Bold + Double Height Mode)
+                commands.push(new Uint8Array([0x1B, 0x45, 0x01])); // Bold ON
+                commands.push(new Uint8Array([0x1B, 0x21, 0x10])); // Double Height
+                commands.push(encoder.encode(`${t.type}\n`));
+                
+                // Reset to Normal
+                commands.push(new Uint8Array([0x1B, 0x45, 0x00])); // Bold OFF
+                commands.push(new Uint8Array([0x1B, 0x21, 0x00])); // Normal Height
+                commands.push(encoder.encode(`${t.time}\n`));
+                commands.push(encoder.encode(`ID PROSES ${t.processId || 'X2HZAVLN'}\n`));
+                commands.push(encoder.encode("--------------------------------\n"));
+                
+                // NOMINAL
+                commands.push(encoder.encode(`NOMINAL : Rp ${Number(t.amount).toLocaleString('id-ID')}\n\n`)); // Spasi setelah nominal
+                
+                // PENERIMA ENTER KETIK A/N
+                if (t.type === 'SETOR TUNAI') {
+                    commands.push(encoder.encode("Penerima:\n"));
+                    commands.push(encoder.encode(`A/N ${t.recipient}\n`));
+                    commands.push(encoder.encode(`BANK ${t.bank}\n`));
+                    commands.push(encoder.encode(`REK: ${t.account}\n\n`)); // Spasi di atas pengirim
+                } else {
+                    commands.push(encoder.encode("\n"));
+                }
+                
+                // PENGIRIM ENTER KETIK A/N
+                commands.push(encoder.encode("Pengirim:\n"));
+                commands.push(encoder.encode(`A/N ${t.sender}\n`));
+                commands.push(encoder.encode("--------------------------------\n\n")); // Spasi di atas BERHASIL
+                
+                // TULISAN BERHASIL (DIBESARKAN & DILEBARKAN KE ATAS DENGAN ESC/POS FONT DOUBLE HEIGHT/WIDTH)
+                commands.push(new Uint8Array([0x1B, 0x45, 0x01])); // Bold ON
+                commands.push(new Uint8Array([0x1B, 0x21, 0x30])); // Double Height & Width
+                commands.push(encoder.encode("BERHASIL\n"));
+                
+                // RESET TO NORMAL FONT SIZE
+                commands.push(new Uint8Array([0x1B, 0x45, 0x00]));
+                commands.push(new Uint8Array([0x1B, 0x21, 0x00]));
+                commands.push(encoder.encode("\nSIMPAN STRUK INI SEBAGAI\nBUKTI TRANSAKSI YANG SAH\n"));
+                commands.push(encoder.encode("WA : 085851462619\n\n\n"));
+
+                for (let cmd of commands) {
+                    await bluetoothCharacteristic.writeValue(cmd);
+                }
+                alert('Struk berhasil dicetak via Bluetooth!');
+            } catch (err) {
+                console.error(err);
+                alert('Gagal cetak Bluetooth: ' + err.message);
+            }
+        }
+
+        function openContactModal() { document.getElementById('contactModal').classList.remove('hidden'); }
+        function closeContactModal() { document.getElementById('contactModal').classList.add('hidden'); }
+
+        function saveNewContact() {
+            const name = document.getElementById('newContactName').value.trim();
+            const bank = document.getElementById('newContactBank').value;
+            const account = document.getElementById('newContactAccount').value.trim();
+            if (!name || !account) {
+                alert('Nama dan No Rekening harus diisi!');
+                return;
+            }
+            appData.contacts.push({ name, bank, account });
+            saveLocalData();
+            renderContactsList();
+            document.getElementById('newContactName').value = '';
+            document.getElementById('newContactAccount').value = '';
+            alert('Kontak berhasil disimpan!');
+        }
+
+        function renderContactsList() {
+            const container = document.getElementById('contactListContainer');
+            if (!appData.contacts || appData.contacts.length === 0) {
+                container.innerHTML = '<div class="text-slate-400">Belum ada kontak tersimpan.</div>';
+                return;
+            }
+            container.innerHTML = appData.contacts.map((c, idx) => `
+                <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-100">
+                    <div>
+                        <div class="font-bold text-slate-800">${c.name}</div>
+                        <div class="text-slate-500">${c.bank} - ${c.account}</div>
+                    </div>
+                    <div class="space-x-1">
+                        <button type="button" onclick="selectContact(${idx})" class="px-2.5 py-1 bg-blue-600 text-white rounded font-bold text-[10px] cursor-pointer">Pilih</button>
+                        <button type="button" onclick="deleteContactItem(${idx})" class="px-2 py-1 bg-rose-100 text-rose-600 rounded font-bold text-[10px] cursor-pointer">Hapus</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectContact(idx) {
+            const c = appData.contacts[idx];
+            document.getElementById('trxRecipient').value = c.name;
+            document.getElementById('trxBank').value = c.bank;
+            document.getElementById('trxAccountNo').value = c.account;
+            closeContactModal();
+            openTransactionModal();
+        }
+
+        function deleteContactItem(idx) {
+            appData.contacts.splice(idx, 1);
+            saveLocalData();
+            renderContactsList();
+        }
+
+        function filterContactsList() {
+            const q = document.getElementById('searchContactInput').value.toLowerCase();
+            const listEl = document.getElementById('contactDropdownList');
+            if (!q) {
+                listEl.classList.add('hidden');
+                return;
+            }
+            const filtered = appData.contacts.filter(c => c.name.toLowerCase().includes(q) || c.account.includes(q));
+            if (filtered.length === 0) {
+                listEl.classList.add('hidden');
+                return;
+            }
+            listEl.classList.remove('hidden');
+            listEl.innerHTML = filtered.map(c => `
+                <div onclick="pickContactDropdown('${c.name}', '${c.bank}', '${c.account}')" class="p-2 hover:bg-slate-100 rounded cursor-pointer text-xs">
+                    <span class="font-bold">${c.name}</span> (${c.bank} - ${c.account})
+                </div>
+            `).join('');
+        }
+
+        function pickContactDropdown(name, bank, account) {
+            document.getElementById('trxRecipient').value = name;
+            document.getElementById('trxBank').value = bank;
+            document.getElementById('trxAccountNo').value = account;
+            document.getElementById('contactDropdownList').classList.add('hidden');
+            document.getElementById('searchContactInput').value = '';
+        }
+
+        function openApiModal() {
+            document.getElementById('apiUrlInput').value = apiUrl;
+            document.getElementById('apiModal').classList.remove('hidden');
+        }
+        function closeApiModal() { document.getElementById('apiModal').classList.add('hidden'); }
+        function saveApiUrl() {
+            apiUrl = document.getElementById('apiUrlInput').value.trim();
+            localStorage.setItem('finalcom_api_url', apiUrl);
+            closeApiModal();
+            syncDataCloud();
+        }
+
+        function syncDataCloud() {
+            if (!apiUrl) return;
+            fetch(apiUrl + '?action=getData')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        appData.cashBalance = Number(data.cashBalance) || 0;
+                        appData.setorTotal = Number(data.setorTotal) || 0;
+                        appData.transactions = data.transactions || [];
+                        if (data.contacts) appData.contacts = data.contacts;
+                        appData.transactions.forEach(t => {
+                            if (!t.id) t.id = 'TRX-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+                        });
+                        saveLocalData();
+                        updateUI();
+                        document.getElementById('syncStatusText').innerText = "Google Spreadsheet Terhubung: Sinkronisasi Cloud Aktif.";
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+
+        function pushDataCloud() {
+            if (!apiUrl) return;
+            fetch(apiUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'saveData',
+                    cashBalance: appData.cashBalance,
+                    setorTotal: appData.setorTotal,
+                    transactions: appData.transactions,
+                    contacts: appData.contacts
+                })
+            }).catch(err => console.error(err));
+        }
+
+        function openEditCashModal() {
+            document.getElementById('newCashInputDisplay').value = appData.cashBalance.toLocaleString('id-ID');
+            document.getElementById('newCashInput').value = appData.cashBalance;
+            document.getElementById('cashModal').classList.remove('hidden');
+        }
+        function closeEditCashModal() { document.getElementById('cashModal').classList.add('hidden'); }
+        function saveNewCash() {
+            appData.cashBalance = Number(document.getElementById('newCashInput').value) || 0;
+            saveLocalData(); updateUI(); pushDataCloud(); closeEditCashModal();
+        }
+
+        function openEditSetorModal() {
+            document.getElementById('newSetorInputDisplay').value = appData.setorTotal.toLocaleString('id-ID');
+            document.getElementById('newSetorInput').value = appData.setorTotal;
+            document.getElementById('setorModal').classList.remove('hidden');
+        }
+        function closeEditSetorModal() { document.getElementById('setorModal').classList.add('hidden'); }
+        function saveNewSetor() {
+            appData.setorTotal = Number(document.getElementById('newSetorInput').value) || 0;
+            saveLocalData(); updateUI(); pushDataCloud(); closeEditSetorModal();
+        }
+
+        async function connectBluetoothPrinter() {
+            try {
+                const serviceUUIDs = [
+                    '000018f0-0000-1000-8000-00805f9b34fb',
+                    '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+                    '0000ff00-0000-1000-8000-00805f9b34fb',
+                    'e7810a71-73ae-499d-8c15-faa9aef0c3f2'
+                ];
+
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: serviceUUIDs
+                });
+
+                const server = await bluetoothDevice.gatt.connect();
+                
+                let service = null;
+                for (let uuid of serviceUUIDs) {
+                    try {
+                        service = await server.getPrimaryService(uuid);
+                        if (service) break;
+                    } catch (e) {
+                        // Lanjut ke UUID berikutnya
+                    }
+                }
+
+                if (!service) {
+                    const services = await server.getPrimaryServices();
+                    if (services && services.length > 0) {
+                        service = services[0];
+                    }
+                }
+
+                if (!service) {
+                    throw new Error("Service Bluetooth printer tidak ditemukan.");
+                }
+
+                const characteristics = await service.getCharacteristics();
+                bluetoothCharacteristic = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse) || characteristics[0];
+
+                if (!bluetoothCharacteristic) {
+                    throw new Error("Karakteristik Bluetooth untuk mencetak tidak ditemukan.");
+                }
+
+                document.getElementById('printerStatus').innerText = `Status: Terhubung (${bluetoothDevice.name || 'Printer Bluetooth'})`;
+                alert('Printer Bluetooth berhasil terhubung!');
+            } catch (error) {
+                console.error(error);
+                alert('Gagal menghubungkan printer: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
