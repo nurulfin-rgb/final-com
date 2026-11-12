@@ -669,6 +669,14 @@
             renderTable();
             renderSavedContacts();
             document.getElementById('inputAppsScriptUrl').value = appsScriptUrl;
+
+            // Jika URL Google Sheets sudah ada, tarik data otomatis di awal & atur auto-sync background tiap 10 detik
+            if (appsScriptUrl) {
+                fetchDataFromGoogleSheets(true); // background sync silent
+                setInterval(() => {
+                    if (appsScriptUrl) fetchDataFromGoogleSheets(true);
+                }, 10000);
+            }
         });
 
         // Google Sheets Integration
@@ -678,6 +686,7 @@
             localStorage.setItem(STORAGE_KEYS.APPS_SCRIPT_URL, url);
             closeModal('sheetsModal');
             alert('URL Google Apps Script berhasil disimpan!');
+            if (appsScriptUrl) fetchDataFromGoogleSheets(false);
         }
 
         async function sendToGoogleSheets(trxData) {
@@ -694,36 +703,47 @@
             }
         }
 
-        async function fetchDataFromGoogleSheets() {
+        async function fetchDataFromGoogleSheets(isBackground = false) {
             const msgBox = document.getElementById('syncStatusMsg');
             if (!appsScriptUrl) {
-                msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 block';
-                msgBox.innerText = 'URL Apps Script belum diisi.';
+                if (!isBackground) {
+                    msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 block';
+                    msgBox.innerText = 'URL Apps Script belum diisi.';
+                }
                 return;
             }
 
-            msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 block';
-            msgBox.innerText = 'Mengambil data dari Google Spreadsheet...';
+            if (!isBackground && msgBox) {
+                msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 block';
+                msgBox.innerText = 'Mengambil data dari Google Spreadsheet...';
+            }
 
             try {
                 const response = await fetch(appsScriptUrl);
                 const data = await response.json();
                 if (data && Array.isArray(data.transactions)) {
-                    transactions = data.transactions;
-                    if (Array.isArray(data.contacts)) contacts = data.contacts;
-                    saveAllState();
-                    recalculateBalances();
-                    renderTable();
-                    renderSavedContacts();
+                    // Update hanya jika ada perbedaan jumlah transaksi atau data terbaru
+                    if (data.transactions.length !== transactions.length || JSON.stringify(data.transactions) !== JSON.stringify(transactions)) {
+                        transactions = data.transactions;
+                        if (Array.isArray(data.contacts) && data.contacts.length > 0) contacts = data.contacts;
+                        saveAllState();
+                        recalculateBalances();
+                        renderTable();
+                        renderSavedContacts();
+                    }
 
-                    msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 block';
-                    msgBox.innerText = 'Data cloud berhasil ditarik dan disinkronkan!';
+                    if (!isBackground && msgBox) {
+                        msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 block';
+                        msgBox.innerText = 'Data cloud berhasil ditarik dan disinkronkan!';
+                    }
                 } else {
                     throw new Error('Format data tidak sesuai');
                 }
             } catch (err) {
-                msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 block';
-                msgBox.innerText = 'Gagal mengambil data. Pastikan web app doGet mengembalikan JSON yang valid.';
+                if (!isBackground && msgBox) {
+                    msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 block';
+                    msgBox.innerText = 'Gagal mengambil data. Pastikan web app doGet mengembalikan JSON yang valid.';
+                }
             }
         }
 
@@ -1319,11 +1339,11 @@
                 }
             });
 
-            // Koreksi alur sesuai permintaan:
+            // Rumus Akuntansi Kasir:
+            // - Tarik Tunai: Mengurangi Saldo Cash / Modal dan menambahkan total Tarik Tunai
             // - Setor Tunai: Mengurangi total Setor Tunai dan menambahkan ke Saldo Cash / Modal
-            // - Tarik Tunai: Mengurangi Saldo Cash / Modal dan menambahkan ke total Tarik Tunai (serta menambah total Setor Tunai)
             currentCalculatedTarik = totalTarikSum;
-            currentCalculatedSetor = Math.max(0, baseSetor + totalTarikSum - totalSetorSum);
+            currentCalculatedSetor = Math.max(0, baseSetor - totalSetorSum + totalTarikSum);
             currentCalculatedCash = baseCash - totalTarikSum + totalSetorSum;
             currentCalculatedTotal = currentCalculatedCash + currentCalculatedSetor;
 
