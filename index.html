@@ -608,14 +608,9 @@
                 </div>
                 <div id="syncStatusMsg" class="hidden p-3 rounded-xl text-xs font-semibold"></div>
             </div>
-            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-                <button onclick="fetchDataFromGoogleSheets()" class="px-4 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition">
-                    <i class="fa-solid fa-rotate mr-1"></i> Tarik Data Cloud
-                </button>
-                <div class="flex gap-2">
-                    <button onclick="closeModal('sheetsModal')" class="px-4 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-300 rounded-xl">Batal</button>
-                    <button onclick="saveAppsScriptUrl()" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow">Simpan</button>
-                </div>
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2">
+                <button onclick="closeModal('sheetsModal')" class="px-4 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-300 rounded-xl">Batal</button>
+                <button onclick="saveAppsScriptUrl()" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow">Simpan</button>
             </div>
         </div>
     </div>
@@ -670,12 +665,9 @@
             renderSavedContacts();
             document.getElementById('inputAppsScriptUrl').value = appsScriptUrl;
 
-            // Jika URL Google Sheets sudah ada, tarik data otomatis di awal & atur auto-sync background tiap 10 detik
+            // Tarik data otomatis langsung saat halaman dimuat (refresh)
             if (appsScriptUrl) {
-                fetchDataFromGoogleSheets(true); // background sync silent
-                setInterval(() => {
-                    if (appsScriptUrl) fetchDataFromGoogleSheets(true);
-                }, 10000);
+                fetchDataFromGoogleSheets(true);
             }
         });
 
@@ -705,13 +697,7 @@
 
         async function fetchDataFromGoogleSheets(isBackground = false) {
             const msgBox = document.getElementById('syncStatusMsg');
-            if (!appsScriptUrl) {
-                if (!isBackground) {
-                    msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 block';
-                    msgBox.innerText = 'URL Apps Script belum diisi.';
-                }
-                return;
-            }
+            if (!appsScriptUrl) return;
 
             if (!isBackground && msgBox) {
                 msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 block';
@@ -722,8 +708,7 @@
                 const response = await fetch(appsScriptUrl);
                 const data = await response.json();
                 if (data && Array.isArray(data.transactions)) {
-                    // Update hanya jika ada perbedaan jumlah transaksi atau data terbaru
-                    if (data.transactions.length !== transactions.length || JSON.stringify(data.transactions) !== JSON.stringify(transactions)) {
+                    if (data.transactions.length > 0) {
                         transactions = data.transactions;
                         if (Array.isArray(data.contacts) && data.contacts.length > 0) contacts = data.contacts;
                         saveAllState();
@@ -736,8 +721,6 @@
                         msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 block';
                         msgBox.innerText = 'Data cloud berhasil ditarik dan disinkronkan!';
                     }
-                } else {
-                    throw new Error('Format data tidak sesuai');
                 }
             } catch (err) {
                 if (!isBackground && msgBox) {
