@@ -703,7 +703,7 @@
             }
 
             msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 block';
-                msgBox.innerText = 'Mengambil data dari Google Spreadsheet...';
+            msgBox.innerText = 'Mengambil data dari Google Spreadsheet...';
 
             try {
                 const response = await fetch(appsScriptUrl);
@@ -1319,9 +1319,12 @@
                 }
             });
 
-            currentCalculatedSetor = baseSetor + totalSetorSum;
+            // Koreksi alur sesuai permintaan:
+            // - Setor Tunai: Mengurangi total Setor Tunai dan menambahkan ke Saldo Cash / Modal
+            // - Tarik Tunai: Mengurangi Saldo Cash / Modal dan menambahkan ke total Tarik Tunai (serta menambah total Setor Tunai)
             currentCalculatedTarik = totalTarikSum;
-            currentCalculatedCash = baseCash + totalSetorSum - totalTarikSum;
+            currentCalculatedSetor = Math.max(0, baseSetor + totalTarikSum - totalSetorSum);
+            currentCalculatedCash = baseCash - totalTarikSum + totalSetorSum;
             currentCalculatedTotal = currentCalculatedCash + currentCalculatedSetor;
 
             applyPrivacyUI();
