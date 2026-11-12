@@ -681,7 +681,7 @@
             if (appsScriptUrl) fetchDataFromGoogleSheets(false);
         }
 
-        async function sendToGoogleSheets(trxData) {
+        async function sendToGoogleSheets() {
             if (!appsScriptUrl) return;
             try {
                 await fetch(appsScriptUrl, {
@@ -689,7 +689,8 @@
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        ...trxData,
+                        action: 'SYNC_FULL',
+                        transactions: transactions,
                         baseCash: baseCash,
                         baseSetor: baseSetor
                     })
@@ -712,23 +713,20 @@
                 const response = await fetch(appsScriptUrl);
                 const data = await response.json();
                 if (data && Array.isArray(data.transactions)) {
-                    if (data.transactions.length > 0) {
-                        // Urutkan data dari yang terbaru di atas (berdasarkan ID atau waktu desc)
-                        transactions = data.transactions.sort((a, b) => b.id - a.id);
-                        if (Array.isArray(data.contacts) && data.contacts.length > 0) contacts = data.contacts;
-                        
-                        if (typeof data.baseCash === 'number') baseCash = data.baseCash;
-                        if (typeof data.baseSetor === 'number') baseSetor = data.baseSetor;
+                    transactions = data.transactions.sort((a, b) => b.id - a.id);
+                    if (Array.isArray(data.contacts) && data.contacts.length > 0) contacts = data.contacts;
+                    
+                    if (typeof data.baseCash === 'number') baseCash = data.baseCash;
+                    if (typeof data.baseSetor === 'number') baseSetor = data.baseSetor;
 
-                        saveAllState();
-                        recalculateBalances();
-                        renderTable();
-                        renderSavedContacts();
-                    }
+                    saveAllState();
+                    recalculateBalances();
+                    renderTable();
+                    renderSavedContacts();
 
                     if (!isBackground && msgBox) {
                         msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 block';
-                        msgBox.innerText = 'Data cloud berhasil ditarik dan disinkronkan!';
+                        msgBox.innerText = 'Data cloud berhasil disinkronkan!';
                     }
                 }
             } catch (err) {
@@ -898,31 +896,125 @@
             closeModal('deleteConfirmModal');
         }
 
-        function executeDeleteTransaction() {
+        async function executeDeleteTransaction() {
             if (deleteTargetId === null) return;
             transactions = transactions.filter(t => t.id !== deleteTargetId);
             saveAllState();
             recalculateBalances();
             renderTable();
             closeDeleteConfirm();
+            
+            // Langsung sinkronkan perubahan ke cloud spreadsheet secara instan
+            await sendToGoogleSheets();
+        }
+        function submitNewTransaction() {
+            const tipe = document.getElementById('selectTipe').value;
+            const pengirim = document.getElementById('selectPengirim').value;
+            const isTarik = tipe === 'TARIK TUNAI';
+            const bank = isTarik ? 'TUNAI' : (document.getElementById('inputBank').value || 'TUNAI');
+            const rekening = isTarik ? '' : document.getElementById('inputRekening').value.trim();
+            const penerima = isTarik ? 'TARIK TUNAI' : (document.getElementById('inputPenerima').value.trim().toUpperCase() || 'PELANGGAN UMUM');
+            const nominal = parseCurrencyValue(document.getElementById('inputNominal').value);
+            const admin = 0;
+            const catatan = document.getElementById('inputCatatan').value.trim();
+
+            const valBox = document.getElementById('trxValidationBox');
+            const valMsg = document.getElementById('trxValidationMsg');
+
+            if (nominal <= 0) {
+                valMsg.innerText = 'Nominal transaksi harus lebih dari Rp 0.';
+                valBox.classList.remove('hidden');
+                return;
+            }
+
+            if (pengirim !== 'AHMAD NURUL ARIFIN' && pengirim !== 'ALFI MUSFIROH') {
+                valMsg.innerText = 'Nama pengirim wajib dipilih antara AHMAD NURUL ARIFIN atau ALFI MUSFIROH.';
+                valBox.classList.remove('hidden');
+                return;
+            }
+
+            valBox.classList.add('hidden');
+
+            if (!isTarik && rekening && penerima && penerima !== 'PELANGGAN UMUM') {
+                const existingContact = contacts.find(c => c.rek === rekening && c.bank === bank);
+                if (!existingContact) {
+                    contacts.unshift({
+                        id: Date.now(),
+                        name: penerima,
+                        bank: bank,
+                        rek: rekening
+                    });
+                }
+            }
+
+            const now = new Date();
+            const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}.${String(now.getMinutes()).padStart(2, '0')}`;
+
+            const newTrx = {
+                id: Date.now(),
+                processId: generateProcessId(),
+                date: dateStr,
+                tipe,
+                pengirim,
+                bank,
+                rekening,
+                penerima,
+                nominal,
+                admin,
+                catatan
+            };
+
+            transactions.unshift(newTrx);
+            saveAllState();
+            recalculateBalances();
+            renderTable();
+            renderSavedContacts();
+            closeModal('transactionModal');
+            
+            sendToGoogleSheets();
+
+            openReceipt(newTrx.id);
         }
 
-        // Table Rendering
+        // Delete Confirmation Logic
+        function promptDeleteTransaction(id) {
+            deleteTargetId = id;
+            openModal('deleteConfirmModal');
+        }
+
+        function closeDeleteConfirm() {
+            deleteTargetId = null;
+            closeModal('deleteConfirmModal');
+        }
+
+        async function executeDeleteTransaction() {
+            if (deleteTargetId === null) return;
+            transactions = transactions.filter(t => t.id !== deleteTargetId);
+            saveAllState();
+            recalculateBalances();
+            renderTable();
+            closeDeleteConfirm();
+            
+            // Langsung sinkronkan perubahan ke cloud spreadsheet secara instan
+            await sendToGoogleSheets();
+        }
+
         function renderTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filterTipe = document.getElementById('filterTipe').value;
             const tbody = document.getElementById('transactionTableBody');
             const emptyState = document.getElementById('emptyState');
-            const search = document.getElementById('searchInput').value.toLowerCase().trim();
-            const filterTipe = document.getElementById('filterTipe').value;
 
             const filtered = transactions.filter(t => {
-                const matchTipe = filterTipe === 'ALL' || t.tipe === filterTipe;
-                const matchSearch = !search || 
-                    t.pengirim.toLowerCase().includes(search) ||
-                    t.penerima.toLowerCase().includes(search) ||
-                    t.bank.toLowerCase().includes(search) ||
-                    (t.rekening && t.rekening.toLowerCase().includes(search)) ||
-                    (t.catatan && t.catatan.toLowerCase().includes(search));
-                return matchTipe && matchSearch;
+                const matchQuery = 
+                    (t.pengirim && t.pengirim.toLowerCase().includes(query)) ||
+                    (t.bank && t.bank.toLowerCase().includes(query)) ||
+                    (t.rekening && t.rekening.toLowerCase().includes(query)) ||
+                    (t.penerima && t.penerima.toLowerCase().includes(query)) ||
+                    (t.catatan && t.catatan.toLowerCase().includes(query));
+                
+                const matchTipe = (filterTipe === 'ALL' || t.tipe === filterTipe);
+                return matchQuery && matchTipe;
             });
 
             if (filtered.length === 0) {
@@ -1274,11 +1366,7 @@
             recalculateBalances();
             closeModal('editBalanceModal');
 
-            sendToGoogleSheets({
-                tipe: 'UPDATE_SALDO',
-                baseCash: baseCash,
-                baseSetor: baseSetor
-            });
+            sendToGoogleSheets();
         }
 
         // -------------------------------------------------------------
