@@ -1005,6 +1005,13 @@
             const tbody = document.getElementById('transactionTableBody');
             const emptyState = document.getElementById('emptyState');
 
+            // Filter transaksi yang nominalnya > 0 agar tidak menampilkan baris kosong/nol
+            const validTransactions = transactions.filter(t => Number(t.nominal) > 0);
+            if (validTransactions.length !== transactions.length) {
+                transactions = validTransactions;
+                saveAllState();
+            }
+
             const filtered = transactions.filter(t => {
                 const matchQuery = 
                     (t.pengirim && t.pengirim.toLowerCase().includes(query)) ||
@@ -1366,6 +1373,7 @@
             recalculateBalances();
             closeModal('editBalanceModal');
 
+            // Kirim pembaruan saldo dasar langsung ke Google Sheets agar semua device ikut sinkron
             sendToGoogleSheets();
         }
 
