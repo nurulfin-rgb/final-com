@@ -97,6 +97,12 @@
                     <span>Kontak</span>
                 </button>
 
+                <!-- Google Sheets Sync Button -->
+                <button onclick="openModal('sheetsModal')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 shadow-sm active:scale-95" title="Sinkronisasi Google Spreadsheet">
+                    <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
+                    <span class="hidden sm:inline">Cloud Sheets</span>
+                </button>
+
                 <!-- Transaksi Baru Button -->
                 <button onclick="openNewTransactionModal()" class="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 shadow active:scale-95">
                     <i class="fa-solid fa-plus text-sm"></i>
@@ -584,6 +590,37 @@
     </div>
 
     <!-- ===================================================================== -->
+    <!-- MODAL 6: GOOGLE SPREADSHEET SETTINGS                                  -->
+    <!-- ===================================================================== -->
+    <div id="sheetsModal" class="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                <h3 class="font-bold text-slate-900 text-sm">Koneksi Google Apps Script</h3>
+                <button onclick="closeModal('sheetsModal')" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1.5">URL Web App Google Apps Script</label>
+                    <input type="text" id="inputAppsScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500">
+                    <p class="text-[11px] text-slate-400 mt-1.5 leading-relaxed">Masukkan URL Deployment Web App dari Google Apps Script spreadsheet Anda agar data transaksi otomatis tersinkron ke cloud.</p>
+                </div>
+                <div id="syncStatusMsg" class="hidden p-3 rounded-xl text-xs font-semibold"></div>
+            </div>
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                <button onclick="fetchDataFromGoogleSheets()" class="px-4 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition">
+                    <i class="fa-solid fa-rotate mr-1"></i> Tarik Data Cloud
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="closeModal('sheetsModal')" class="px-4 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-300 rounded-xl">Batal</button>
+                    <button onclick="saveAppsScriptUrl()" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
     <!-- JAVASCRIPT APPLICATION LOGIC                                          -->
     <!-- ===================================================================== -->
     <script>
@@ -593,44 +630,18 @@
             CONTACTS: 'finalcom_v21_contacts',
             BASE_CASH: 'finalcom_v21_base_cash',
             BASE_SETOR: 'finalcom_v21_base_setor',
-            PRIVACY: 'finalcom_v21_privacy'
+            PRIVACY: 'finalcom_v21_privacy',
+            APPS_SCRIPT_URL: 'finalcom_v21_apps_script_url'
         };
 
-        // Default Pre-populated Sample Data
+        // Default Clean State
         const defaultContacts = [
             { id: 101, name: 'BHARUL ULUM', bank: 'BCA', rek: '8240915180' },
             { id: 102, name: 'SITI AMINAH', bank: 'BRI', rek: '629901024552531' },
             { id: 103, name: 'BUDI SANTOSO', bank: 'Mandiri', rek: '1400019283746' }
         ];
 
-        const defaultTransactions = [
-            {
-                id: 1731373200001,
-                processId: 'LMU3M5Q',
-                date: '12/11/2026 09.15',
-                tipe: 'SETOR TUNAI',
-                pengirim: 'AHMAD NURUL ARIFIN',
-                bank: 'BCA',
-                rekening: '8240915180',
-                penerima: 'BHARUL ULUM',
-                nominal: 3000000,
-                admin: 0,
-                catatan: 'Transfer Supplier'
-            },
-            {
-                id: 1731376800002,
-                processId: 'K9P2X7R',
-                date: '12/11/2026 10.30',
-                tipe: 'TARIK TUNAI',
-                pengirim: 'ALFI MUSFIROH',
-                bank: 'TUNAI',
-                rekening: '',
-                penerima: 'TARIK TUNAI',
-                nominal: 1000000,
-                admin: 0,
-                catatan: 'Tarik Tunai Pelanggan'
-            }
-        ];
+        const defaultTransactions = [];
 
         // Application State
         let transactions = JSON.parse(localStorage.getItem(STORAGE_KEYS.TRANSACTIONS)) || defaultTransactions;
@@ -638,6 +649,7 @@
         let baseCash = Number(localStorage.getItem(STORAGE_KEYS.BASE_CASH) ?? 86099000);
         let baseSetor = Number(localStorage.getItem(STORAGE_KEYS.BASE_SETOR) ?? 15928000);
         let isPrivacyHidden = localStorage.getItem(STORAGE_KEYS.PRIVACY) === 'true';
+        let appsScriptUrl = localStorage.getItem(STORAGE_KEYS.APPS_SCRIPT_URL) || '';
 
         let currentCalculatedTotal = 0;
         let currentCalculatedCash = 0;
@@ -647,7 +659,6 @@
         let editingBalanceTarget = null;
         let activeReceiptTrx = null;
 
-        // Persistent Bluetooth Printer State (One-time pairing per session + auto-reconnect)
         let btDevice = null;
         let btCharacteristic = null;
 
@@ -657,162 +668,62 @@
             recalculateBalances();
             renderTable();
             renderSavedContacts();
+            document.getElementById('inputAppsScriptUrl').value = appsScriptUrl;
         });
 
-        // Toggle Backup / Data Dropdown Menu
-        function toggleBackupMenu() {
-            const menu = document.getElementById('backupMenu');
-            menu.classList.toggle('hidden');
+        // Google Sheets Integration
+        function saveAppsScriptUrl() {
+            const url = document.getElementById('inputAppsScriptUrl').value.trim();
+            appsScriptUrl = url;
+            localStorage.setItem(STORAGE_KEYS.APPS_SCRIPT_URL, url);
+            closeModal('sheetsModal');
+            alert('URL Google Apps Script berhasil disimpan!');
         }
 
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', (e) => {
-            const searchBox = document.getElementById('contactSearchBox');
-            const dropdown = document.getElementById('contactSuggestionDropdown');
-            if (searchBox && dropdown && !searchBox.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.classList.add('hidden');
+        async function sendToGoogleSheets(trxData) {
+            if (!appsScriptUrl) return;
+            try {
+                await fetch(appsScriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(trxData)
+                });
+            } catch (e) {
+                console.error('Gagal sinkronisasi ke Google Sheets:', e);
+            }
+        }
+
+        async function fetchDataFromGoogleSheets() {
+            const msgBox = document.getElementById('syncStatusMsg');
+            if (!appsScriptUrl) {
+                msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 block';
+                msgBox.innerText = 'URL Apps Script belum diisi.';
+                return;
             }
 
-            const backupMenu = document.getElementById('backupMenu');
-            const backupBtn = e.target.closest('button');
-            if (backupMenu && !backupMenu.contains(e.target) && (!backupBtn || !backupBtn.getAttribute('onclick')?.includes('toggleBackupMenu'))) {
-                backupMenu.classList.add('hidden');
-            }
-        });
+            msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 block';
+                msgBox.innerText = 'Mengambil data dari Google Spreadsheet...';
 
-        // Export All Data to JSON File
-        function exportDataBackup() {
-            const backupData = {
-                version: "2.1",
-                exportDate: new Date().toISOString(),
-                transactions,
-                contacts,
-                baseCash,
-                baseSetor,
-                isPrivacyHidden
-            };
+            try {
+                const response = await fetch(appsScriptUrl);
+                const data = await response.json();
+                if (data && Array.isArray(data.transactions)) {
+                    transactions = data.transactions;
+                    if (Array.isArray(data.contacts)) contacts = data.contacts;
+                    saveAllState();
+                    recalculateBalances();
+                    renderTable();
+                    renderSavedContacts();
 
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `finalcom_backup_${new Date().toISOString().slice(0, 10)}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-            
-            document.getElementById('backupMenu').classList.add('hidden');
-        }
-
-        // Import / Restore Data from JSON File
-        function importDataBackup(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const parsed = JSON.parse(e.target.result);
-                    if (parsed && Array.isArray(parsed.transactions) && Array.isArray(parsed.contacts)) {
-                        transactions = parsed.transactions;
-                        contacts = parsed.contacts;
-                        if (typeof parsed.baseCash === 'number') baseCash = parsed.baseCash;
-                        if (typeof parsed.baseSetor === 'number') baseSetor = parsed.baseSetor;
-                        if (typeof parsed.isPrivacyHidden === 'boolean') isPrivacyHidden = parsed.isPrivacyHidden;
-
-                        saveAllState();
-                        applyPrivacyUI();
-                        recalculateBalances();
-                        renderTable();
-                        renderSavedContacts();
-
-                        alert('Data keuangan dan riwayat berhasil dipulihkan sepenuhnya!');
-                    } else {
-                        alert('Format file cadangan tidak valid.');
-                    }
-                } catch (err) {
-                    alert('Gagal membaca file cadangan. Pastikan file berformat JSON.');
+                    msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 block';
+                    msgBox.innerText = 'Data cloud berhasil ditarik dan disinkronkan!';
+                } else {
+                    throw new Error('Format data tidak sesuai');
                 }
-                event.target.value = '';
-                document.getElementById('backupMenu').classList.add('hidden');
-            };
-            reader.readAsText(file);
-        }
-
-        // Formatting Helpers
-        function formatNumber(num) {
-            return Math.round(num).toLocaleString('id-ID');
-        }
-
-        function formatCurrencyInput(el) {
-            const raw = el.value.replace(/\D/g, '');
-            el.value = raw ? parseInt(raw, 10).toLocaleString('id-ID') : '';
-        }
-
-        function parseCurrencyValue(str) {
-            if (!str) return 0;
-            const raw = String(str).replace(/\D/g, '');
-            return raw ? parseInt(raw, 10) : 0;
-        }
-
-        // State Persistence
-        function saveAllState() {
-            localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
-            localStorage.setItem(STORAGE_KEYS.CONTACTS, JSON.stringify(contacts));
-            localStorage.setItem(STORAGE_KEYS.BASE_CASH, baseCash);
-            localStorage.setItem(STORAGE_KEYS.BASE_SETOR, baseSetor);
-            localStorage.setItem(STORAGE_KEYS.PRIVACY, isPrivacyHidden);
-        }
-
-        // Balance Calculations
-        function recalculateBalances() {
-            let deltaCash = 0;
-            let deltaSetor = 0;
-            let totalTarik = 0;
-
-            transactions.forEach(t => {
-                if (t.tipe === 'SETOR TUNAI') {
-                    deltaCash += t.nominal;
-                    deltaSetor -= t.nominal;
-                } else if (t.tipe === 'TARIK TUNAI') {
-                    deltaCash -= t.nominal;
-                    deltaSetor += t.nominal;
-                    totalTarik += t.nominal;
-                }
-            });
-
-            currentCalculatedCash = baseCash + deltaCash;
-            currentCalculatedSetor = baseSetor + deltaSetor;
-            currentCalculatedTarik = totalTarik;
-            currentCalculatedTotal = currentCalculatedCash + currentCalculatedSetor;
-
-            updateSummaryUI();
-        }
-
-        function updateSummaryUI() {
-            const mask = 'Rp ••••••••';
-            document.getElementById('cardSaldoTotal').innerText = isPrivacyHidden ? mask : `Rp ${formatNumber(currentCalculatedTotal)}`;
-            document.getElementById('cardSaldoCash').innerText = isPrivacyHidden ? mask : `Rp ${formatNumber(currentCalculatedCash)}`;
-            document.getElementById('cardTotalSetor').innerText = isPrivacyHidden ? mask : `Rp ${formatNumber(currentCalculatedSetor)}`;
-            document.getElementById('cardTotalTarik').innerText = isPrivacyHidden ? mask : `Rp ${formatNumber(currentCalculatedTarik)}`;
-        }
-
-        // Privacy Toggle
-        function togglePrivacy() {
-            isPrivacyHidden = !isPrivacyHidden;
-            saveAllState();
-            applyPrivacyUI();
-            updateSummaryUI();
-        }
-
-        function applyPrivacyUI() {
-            const icon = document.getElementById('privacyIcon');
-            const label = document.getElementById('privacyLabel');
-            if (isPrivacyHidden) {
-                icon.className = 'fa-solid fa-eye-slash text-sm';
-                label.innerText = 'Tampilkan';
-            } else {
-                icon.className = 'fa-solid fa-eye text-sm';
-                label.innerText = 'Sembunyikan';
+            } catch (err) {
+                msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 block';
+                msgBox.innerText = 'Gagal mengambil data. Pastikan web app doGet mengembalikan JSON yang valid.';
             }
         }
 
@@ -923,7 +834,6 @@
 
             valBox.classList.add('hidden');
 
-            // Otomatis simpan ke daftar kontak jika Setor Tunai dan nomor rekening belum ada
             if (!isTarik && rekening && penerima && penerima !== 'PELANGGAN UMUM') {
                 const existingContact = contacts.find(c => c.rek === rekening && c.bank === bank);
                 if (!existingContact) {
@@ -959,6 +869,10 @@
             renderTable();
             renderSavedContacts();
             closeModal('transactionModal');
+            
+            // Kirim ke Google Apps Script secara otomatis di latar belakang
+            sendToGoogleSheets(newTrx);
+
             openReceipt(newTrx.id);
         }
 
@@ -1348,6 +1262,144 @@
             saveAllState();
             recalculateBalances();
             closeModal('editBalanceModal');
+        }
+
+        // -------------------------------------------------------------
+        // MISSING UTILITY & PRIVACY FUNCTIONS FIXED BELOW
+        // -------------------------------------------------------------
+
+        function togglePrivacy() {
+            isPrivacyHidden = !isPrivacyHidden;
+            localStorage.setItem(STORAGE_KEYS.PRIVACY, isPrivacyHidden);
+            applyPrivacyUI();
+        }
+
+        function applyPrivacyUI() {
+            const icon = document.getElementById('privacyIcon');
+            const label = document.getElementById('privacyLabel');
+            
+            if (icon && label) {
+                if (isPrivacyHidden) {
+                    icon.className = 'fa-solid fa-eye-slash text-sm';
+                    label.innerText = 'Tampilkan';
+                } else {
+                    icon.className = 'fa-solid fa-eye text-sm';
+                    label.innerText = 'Sembunyikan';
+                }
+            }
+
+            // Apply masked display to summary cards if active
+            const elTotal = document.getElementById('cardSaldoTotal');
+            const elCash = document.getElementById('cardSaldoCash');
+            const elSetor = document.getElementById('cardTotalSetor');
+            const elTarik = document.getElementById('cardTotalTarik');
+
+            if (isPrivacyHidden) {
+                if (elTotal) elTotal.innerText = 'Rp ••••••••';
+                if (elCash) elCash.innerText = 'Rp ••••••••';
+                if (elSetor) elSetor.innerText = 'Rp ••••••••';
+                if (elTarik) elTarik.innerText = 'Rp ••••••••';
+            } else {
+                if (elTotal) elTotal.innerText = `Rp ${formatNumber(currentCalculatedTotal)}`;
+                if (elCash) elCash.innerText = `Rp ${formatNumber(currentCalculatedCash)}`;
+                if (elSetor) elSetor.innerText = `Rp ${formatNumber(currentCalculatedSetor)}`;
+                if (elTarik) elTarik.innerText = `Rp ${formatNumber(currentCalculatedTarik)}`;
+            }
+        }
+
+        function recalculateBalances() {
+            let totalSetorSum = 0;
+            let totalTarikSum = 0;
+
+            transactions.forEach(t => {
+                if (t.tipe === 'SETOR TUNAI') {
+                    totalSetorSum += Number(t.nominal) || 0;
+                } else if (t.tipe === 'TARIK TUNAI') {
+                    totalTarikSum += Number(t.nominal) || 0;
+                }
+            });
+
+            currentCalculatedSetor = baseSetor + totalSetorSum;
+            currentCalculatedTarik = totalTarikSum;
+            currentCalculatedCash = baseCash + totalSetorSum - totalTarikSum;
+            currentCalculatedTotal = currentCalculatedCash + currentCalculatedSetor;
+
+            applyPrivacyUI();
+        }
+
+        function formatNumber(num) {
+            if (isNaN(num)) return '0';
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+
+        function parseCurrencyValue(str) {
+            if (!str) return 0;
+            const cleaned = str.toString().replace(/[^0-9]/g, '');
+            return Number(cleaned) || 0;
+        }
+
+        function formatCurrencyInput(el) {
+            const val = parseCurrencyValue(el.value);
+            el.value = val > 0 ? formatNumber(val) : '';
+        }
+
+        function saveAllState() {
+            localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
+            localStorage.setItem(STORAGE_KEYS.CONTACTS, JSON.stringify(contacts));
+            localStorage.setItem(STORAGE_KEYS.BASE_CASH, baseCash);
+            localStorage.setItem(STORAGE_KEYS.BASE_SETOR, baseSetor);
+        }
+
+        function toggleBackupMenu() {
+            const menu = document.getElementById('backupMenu');
+            if (menu) menu.classList.toggle('hidden');
+        }
+
+        function exportDataBackup() {
+            const backupData = {
+                version: '2.1',
+                timestamp: new Date().toISOString(),
+                transactions,
+                contacts,
+                baseCash,
+                baseSetor
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `finalcom_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+            toggleBackupMenu();
+        }
+
+        function importDataBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed && Array.isArray(parsed.transactions)) {
+                        transactions = parsed.transactions;
+                        if (Array.isArray(parsed.contacts)) contacts = parsed.contacts;
+                        if (typeof parsed.baseCash === 'number') baseCash = parsed.baseCash;
+                        if (typeof parsed.baseSetor === 'number') baseSetor = parsed.baseSetor;
+                        saveAllState();
+                        recalculateBalances();
+                        renderTable();
+                        renderSavedContacts();
+                        alert('Data cadangan berhasil dipulihkan dengan sempurna!');
+                    } else {
+                        throw new Error('Format file tidak valid');
+                    }
+                } catch (err) {
+                    alert('Gagal memulihkan data: Berkas tidak valid.');
+                }
+            };
+            reader.readAsText(file);
+            toggleBackupMenu();
         }
     </script>
 </body>
