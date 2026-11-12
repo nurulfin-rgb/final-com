@@ -72,6 +72,25 @@
                     <span id="privacyLabel" class="hidden sm:inline">Sembunyikan</span>
                 </button>
 
+                <!-- Data Backup & Restore Dropdown / Buttons -->
+                <div class="relative inline-block text-left">
+                    <button onclick="toggleBackupMenu()" class="bg-blue-700 hover:bg-blue-800 text-white px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 shadow-sm">
+                        <i class="fa-solid fa-database text-sm"></i>
+                        <span class="hidden sm:inline">Data</span>
+                    </button>
+                    <div id="backupMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-40 text-slate-700">
+                        <button onclick="exportDataBackup()" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-xs font-bold flex items-center gap-2.5">
+                            <i class="fa-solid fa-download text-blue-600"></i>
+                            <span>Simpan Cadangan (.json)</span>
+                        </button>
+                        <button onclick="document.getElementById('importFileField').click()" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-xs font-bold flex items-center gap-2.5 border-t border-slate-100">
+                            <i class="fa-solid fa-upload text-emerald-600"></i>
+                            <span>Pulihkan Data (.json)</span>
+                        </button>
+                        <input type="file" id="importFileField" onchange="importDataBackup(event)" accept=".json" class="hidden">
+                    </div>
+                </div>
+
                 <!-- Kontak Button -->
                 <button onclick="openModal('contactModal')" class="bg-blue-700 hover:bg-blue-800 text-white px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 shadow-sm active:scale-95">
                     <i class="fa-solid fa-address-book text-sm"></i>
@@ -640,14 +659,84 @@
             renderSavedContacts();
         });
 
-        // Close contact dropdown when clicking outside
+        // Toggle Backup / Data Dropdown Menu
+        function toggleBackupMenu() {
+            const menu = document.getElementById('backupMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Close dropdowns when clicking outside
         document.addEventListener('click', (e) => {
             const searchBox = document.getElementById('contactSearchBox');
             const dropdown = document.getElementById('contactSuggestionDropdown');
             if (searchBox && dropdown && !searchBox.contains(e.target) && !dropdown.contains(e.target)) {
                 dropdown.classList.add('hidden');
             }
+
+            const backupMenu = document.getElementById('backupMenu');
+            const backupBtn = e.target.closest('button');
+            if (backupMenu && !backupMenu.contains(e.target) && (!backupBtn || !backupBtn.getAttribute('onclick')?.includes('toggleBackupMenu'))) {
+                backupMenu.classList.add('hidden');
+            }
         });
+
+        // Export All Data to JSON File
+        function exportDataBackup() {
+            const backupData = {
+                version: "2.1",
+                exportDate: new Date().toISOString(),
+                transactions,
+                contacts,
+                baseCash,
+                baseSetor,
+                isPrivacyHidden
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `finalcom_backup_${new Date().toISOString().slice(0, 10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            
+            document.getElementById('backupMenu').classList.add('hidden');
+        }
+
+        // Import / Restore Data from JSON File
+        function importDataBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed && Array.isArray(parsed.transactions) && Array.isArray(parsed.contacts)) {
+                        transactions = parsed.transactions;
+                        contacts = parsed.contacts;
+                        if (typeof parsed.baseCash === 'number') baseCash = parsed.baseCash;
+                        if (typeof parsed.baseSetor === 'number') baseSetor = parsed.baseSetor;
+                        if (typeof parsed.isPrivacyHidden === 'boolean') isPrivacyHidden = parsed.isPrivacyHidden;
+
+                        saveAllState();
+                        applyPrivacyUI();
+                        recalculateBalances();
+                        renderTable();
+                        renderSavedContacts();
+
+                        alert('Data keuangan dan riwayat berhasil dipulihkan sepenuhnya!');
+                    } else {
+                        alert('Format file cadangan tidak valid.');
+                    }
+                } catch (err) {
+                    alert('Gagal membaca file cadangan. Pastikan file berformat JSON.');
+                }
+                event.target.value = '';
+                document.getElementById('backupMenu').classList.add('hidden');
+            };
+            reader.readAsText(file);
+        }
 
         // Formatting Helpers
         function formatNumber(num) {
