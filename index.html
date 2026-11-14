@@ -679,6 +679,7 @@
                     body: JSON.stringify({
                         action: 'SYNC_FULL',
                         transactions: transactions,
+                        contacts: contacts,
                         baseCash: baseCash,
                         baseSetor: baseSetor
                     })
@@ -702,7 +703,9 @@
                 const data = await response.json();
                 if (data && Array.isArray(data.transactions)) {
                     transactions = data.transactions.sort((a, b) => b.id - a.id);
-                    if (Array.isArray(data.contacts) && data.contacts.length > 0) contacts = data.contacts;
+                    if (Array.isArray(data.contacts)) {
+                        contacts = data.contacts;
+                    }
                     
                     if (typeof data.baseCash === 'number') baseCash = data.baseCash;
                     if (typeof data.baseSetor === 'number') baseSetor = data.baseSetor;
@@ -1322,46 +1325,13 @@
             rekInput.value = '';
             saveAllState();
             renderSavedContacts();
+            sendToGoogleSheets();
         }
 
         function deleteContact(id) {
             contacts = contacts.filter(c => c.id !== id);
             saveAllState();
             renderSavedContacts();
-        }
-
-        // Edit Base Balance Modal Logic
-        function openEditBalanceModal(target) {
-            editingBalanceTarget = target;
-            const titleEl = document.getElementById('editBalanceTitle');
-            const labelEl = document.getElementById('editBalanceLabel');
-            const inputEl = document.getElementById('editBalanceInput');
-
-            if (target === 'cash') {
-                titleEl.innerText = 'Atur Saldo Cash / Modal';
-                labelEl.innerText = 'Nominal Saldo Cash Dasar (Rp)';
-                inputEl.value = formatNumber(baseCash);
-            } else {
-                titleEl.innerText = 'Atur Saldo Setor Tunai';
-                labelEl.innerText = 'Nominal Setor Tunai Dasar (Rp)';
-                inputEl.value = formatNumber(baseSetor);
-            }
-
-            openModal('editBalanceModal');
-        }
-
-        function saveEditedBalance() {
-            const newVal = parseCurrencyValue(document.getElementById('editBalanceInput').value);
-            if (editingBalanceTarget === 'cash') {
-                baseCash = newVal;
-            } else if (editingBalanceTarget === 'setor') {
-                baseSetor = newVal;
-            }
-            saveAllState();
-            recalculateBalances();
-            closeModal('editBalanceModal');
-
-            // Kirim pembaruan saldo dasar langsung ke Google Sheets agar semua device ikut sinkron
             sendToGoogleSheets();
         }
 
