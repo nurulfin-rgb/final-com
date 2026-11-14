@@ -1309,7 +1309,7 @@
             `).join('');
         }
 
-        function addNewContact() {
+        async function addNewContact() {
             const nameInput = document.getElementById('contactNameInput');
             const bankInput = document.getElementById('contactBankInput');
             const rekInput = document.getElementById('contactRekInput');
@@ -1331,14 +1331,18 @@
             rekInput.value = '';
             saveAllState();
             renderSavedContacts();
-            sendToGoogleSheets();
+            
+            // Langsung kirim state penuh ke Google Spreadsheet agar tersinkron antar device
+            await sendToGoogleSheets();
         }
 
-        function deleteContact(id) {
+        async function deleteContact(id) {
             contacts = contacts.filter(c => c.id !== id);
             saveAllState();
             renderSavedContacts();
-            sendToGoogleSheets();
+            
+            // Langsung kirim state penuh ke Google Spreadsheet
+            await sendToGoogleSheets();
         }
 
         // -------------------------------------------------------------
