@@ -1320,19 +1320,23 @@
 
             if (!name || !rek) return;
 
-            contacts.unshift({
-                id: Date.now(),
-                name,
-                bank,
-                rek
-            });
+            // Cek apakah kontak sudah ada untuk menghindari duplikat
+            const exists = contacts.some(c => c.rek === rek && c.bank === bank);
+            if (!exists) {
+                contacts.unshift({
+                    id: Date.now(),
+                    name,
+                    bank,
+                    rek
+                });
+            }
 
             nameInput.value = '';
             rekInput.value = '';
             saveAllState();
             renderSavedContacts();
             
-            // Langsung kirim state penuh ke Google Spreadsheet agar tersinkron antar device
+            // Wajib panggil sendToGoogleSheets agar data kontak langsung tersimpan ke cloud
             await sendToGoogleSheets();
         }
 
@@ -1341,7 +1345,7 @@
             saveAllState();
             renderSavedContacts();
             
-            // Langsung kirim state penuh ke Google Spreadsheet
+            // Wajib panggil sendToGoogleSheets agar perubahan kontak terhapus di cloud
             await sendToGoogleSheets();
         }
 
