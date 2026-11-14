@@ -672,33 +672,22 @@
         async function sendToGoogleSheets() {
             if (!appsScriptUrl) return;
             try {
-                const cacheBuster = (appsScriptUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
-                const response = await fetch(appsScriptUrl + cacheBuster, { cache: 'no-store' });
-                const data = await response.json();
-                if (data && Array.isArray(data.transactions)) {
-                    transactions = data.transactions.sort((a, b) => b.id - a.id);
-                    if (Array.isArray(data.contacts)) {
-                        contacts = data.contacts;
-                    }
-                    
-                    if (typeof data.baseCash === 'number') baseCash = data.baseCash;
-                    if (typeof data.baseSetor === 'number') baseSetor = data.baseSetor;
+                const payload = {
+                    action: 'SYNC_FULL',
+                    baseCash: baseCash,
+                    baseSetor: baseSetor,
+                    contacts: contacts,
+                    transactions: transactions
+                };
 
-                    saveAllState();
-                    recalculateBalances();
-                    renderTable();
-                    renderSavedContacts();
-
-                    if (!isBackground && msgBox) {
-                        msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 block';
-                        msgBox.innerText = 'Data cloud berhasil disinkronkan!';
-                    }
-                }
+                await fetch(appsScriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
             } catch (err) {
-                if (!isBackground && msgBox) {
-                    msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 block';
-                    msgBox.innerText = 'Gagal mengambil data.';
-                }
+                console.error("Gagal sinkronisasi ke cloud:", err);
             }
         }
 
@@ -720,11 +709,12 @@
             }
 
             try {
-                const response = await fetch(appsScriptUrl);
+                const cacheBuster = (appsScriptUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
+                const response = await fetch(appsScriptUrl + cacheBuster, { cache: 'no-store' });
                 const data = await response.json();
                 if (data && Array.isArray(data.transactions)) {
                     transactions = data.transactions.sort((a, b) => b.id - a.id);
-                    if (Array.isArray(data.contacts)) {
+                    if (Array.isArray(data.contacts) && data.contacts.length > 0) {
                         contacts = data.contacts;
                     }
                     
@@ -747,11 +737,6 @@
                     msgBox.innerText = 'Gagal mengambil data.';
                 }
             }
-        }
-
-        // Modal Controls
-        function openModal(id) {
-            document.getElementById(id).classList.remove('hidden');
         }
 
         function closeModal(id) {
