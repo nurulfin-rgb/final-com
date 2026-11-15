@@ -1360,12 +1360,12 @@
 
             if (target === 'cash') {
                 titleEl.innerText = 'Atur Saldo Cash / Modal';
-                labelEl.innerText = 'Nominal Saldo Cash Awal (Rp)';
-                inputEl.value = baseCash > 0 ? formatNumber(baseCash) : '';
+                labelEl.innerText = 'Nominal Saldo Cash Terakhir (Rp)';
+                inputEl.value = currentCalculatedCash > 0 ? formatNumber(currentCalculatedCash) : '';
             } else {
                 titleEl.innerText = 'Atur Saldo Setor Tunai';
-                labelEl.innerText = 'Nominal Setor Tunai Awal (Rp)';
-                inputEl.value = baseSetor > 0 ? formatNumber(baseSetor) : '';
+                labelEl.innerText = 'Nominal Setor Tunai Terakhir (Rp)';
+                inputEl.value = currentCalculatedSetor > 0 ? formatNumber(currentCalculatedSetor) : '';
             }
 
             openModal('editBalanceModal');
@@ -1374,19 +1374,31 @@
 
         async function saveEditedBalance() {
             const inputEl = document.getElementById('editBalanceInput');
-            const newVal = parseCurrencyValue(inputEl.value);
+            const desiredFinalVal = parseCurrencyValue(inputEl.value);
 
+            let totalSetorSum = 0;
+            let totalTarikSum = 0;
+
+            transactions.forEach(t => {
+                if (t.tipe === 'SETOR TUNAI') {
+                    totalSetorSum += Number(t.nominal) || 0;
+                } else if (t.tipe === 'TARIK TUNAI') {
+                    totalTarikSum += Number(t.nominal) || 0;
+                }
+            });
+
+            // Sesuaikan baseCash / baseSetor agar hasil perhitungan akhir persis sama dengan nominal yang diinput
             if (editingBalanceTarget === 'cash') {
-                baseCash = newVal;
+                baseCash = desiredFinalVal + totalTarikSum - totalSetorSum;
             } else if (editingBalanceTarget === 'setor') {
-                baseSetor = newVal;
+                baseSetor = desiredFinalVal + totalSetorSum - totalTarikSum;
             }
 
             saveAllState();
             recalculateBalances();
             closeModal('editBalanceModal');
 
-            // Sinkronkan saldo dasar terbaru ke Google Spreadsheet agar semua perangkat ikut berubah
+            // Sinkronkan saldo terbaru ke Google Spreadsheet agar semua perangkat ikut berubah
             await sendToGoogleSheets();
         }
 
