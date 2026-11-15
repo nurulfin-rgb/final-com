@@ -700,7 +700,23 @@
         function openModal(id) {
             document.getElementById(id).classList.remove('hidden');
             if (id === 'contactModal' && appsScriptUrl) {
-                fetchDataFromGoogleSheets(true);
+                fetchContactsOnlyFromCloud();
+            }
+        }
+
+        async function fetchContactsOnlyFromCloud() {
+            if (!appsScriptUrl) return;
+            try {
+                const cacheBuster = (appsScriptUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
+                const response = await fetch(appsScriptUrl + cacheBuster, { cache: 'no-store' });
+                const data = await response.json();
+                if (data && Array.isArray(data.contacts) && data.contacts.length > 0) {
+                    contacts = data.contacts;
+                    localStorage.setItem(STORAGE_KEYS.CONTACTS, JSON.stringify(contacts));
+                    renderSavedContacts();
+                }
+            } catch (err) {
+                console.error("Gagal mengambil kontak:", err);
             }
         }
 
@@ -719,8 +735,8 @@
                 const data = await response.json();
                 if (data && Array.isArray(data.transactions)) {
                     const cloudTs = Number(data.updatedAt || 0);
-                    // Jika data lokal baru saja diubah dalam 8 detik terakhir dan cloud belum terupdate, jangan timpa data lokal
-                    if (lastSyncTs > 0 && (Date.now() - lastSyncTs < 8000) && cloudTs < lastSyncTs) {
+                    // Jika data lokal baru saja diubah dalam 15 detik terakhir dan cloud belum terupdate, jangan timpa data lokal
+                    if (lastSyncTs > 0 && (Date.now() - lastSyncTs < 15000) && cloudTs < lastSyncTs) {
                         return;
                     }
 
