@@ -1350,6 +1350,47 @@
         }
 
         // -------------------------------------------------------------
+        // EDIT SALDO CASH & SETOR TUNAI MODAL LOGIC
+        // -------------------------------------------------------------
+        function openEditBalanceModal(target) {
+            editingBalanceTarget = target;
+            const titleEl = document.getElementById('editBalanceTitle');
+            const labelEl = document.getElementById('editBalanceLabel');
+            const inputEl = document.getElementById('editBalanceInput');
+
+            if (target === 'cash') {
+                titleEl.innerText = 'Atur Saldo Cash / Modal';
+                labelEl.innerText = 'Nominal Saldo Cash Awal (Rp)';
+                inputEl.value = baseCash > 0 ? formatNumber(baseCash) : '';
+            } else {
+                titleEl.innerText = 'Atur Saldo Setor Tunai';
+                labelEl.innerText = 'Nominal Setor Tunai Awal (Rp)';
+                inputEl.value = baseSetor > 0 ? formatNumber(baseSetor) : '';
+            }
+
+            openModal('editBalanceModal');
+            setTimeout(() => inputEl.focus(), 100);
+        }
+
+        async function saveEditedBalance() {
+            const inputEl = document.getElementById('editBalanceInput');
+            const newVal = parseCurrencyValue(inputEl.value);
+
+            if (editingBalanceTarget === 'cash') {
+                baseCash = newVal;
+            } else if (editingBalanceTarget === 'setor') {
+                baseSetor = newVal;
+            }
+
+            saveAllState();
+            recalculateBalances();
+            closeModal('editBalanceModal');
+
+            // Sinkronkan saldo dasar terbaru ke Google Spreadsheet agar semua perangkat ikut berubah
+            await sendToGoogleSheets();
+        }
+
+        // -------------------------------------------------------------
         // MISSING UTILITY & PRIVACY FUNCTIONS FIXED BELOW
         // -------------------------------------------------------------
 
