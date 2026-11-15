@@ -613,6 +613,7 @@
             CONTACTS: 'finalcom_v21_contacts',
             BASE_CASH: 'finalcom_v21_base_cash',
             BASE_SETOR: 'finalcom_v21_base_setor',
+            LAST_SYNC_TS: 'finalcom_v21_last_sync_ts',
             PRIVACY: 'finalcom_v21_privacy',
             APPS_SCRIPT_URL: 'finalcom_v21_apps_script_url'
         };
@@ -631,6 +632,7 @@
         let contacts = JSON.parse(localStorage.getItem(STORAGE_KEYS.CONTACTS)) || defaultContacts;
         let baseCash = Number(localStorage.getItem(STORAGE_KEYS.BASE_CASH) ?? 86099000);
         let baseSetor = Number(localStorage.getItem(STORAGE_KEYS.BASE_SETOR) ?? 15928000);
+        let lastSyncTs = Number(localStorage.getItem(STORAGE_KEYS.LAST_SYNC_TS) ?? 0);
         let isPrivacyHidden = localStorage.getItem(STORAGE_KEYS.PRIVACY) === 'true';
         let appsScriptUrl = localStorage.getItem(STORAGE_KEYS.APPS_SCRIPT_URL) || '';
 
@@ -671,9 +673,12 @@
 
         async function sendToGoogleSheets() {
             if (!appsScriptUrl) return;
+            lastSyncTs = Date.now();
+            localStorage.setItem(STORAGE_KEYS.LAST_SYNC_TS, lastSyncTs);
             try {
                 const payload = {
                     action: 'SYNC_FULL',
+                    updatedAt: lastSyncTs,
                     baseCash: baseCash,
                     baseSetor: baseSetor,
                     contacts: contacts,
@@ -713,13 +718,19 @@
                 const response = await fetch(appsScriptUrl + cacheBuster, { cache: 'no-store' });
                 const data = await response.json();
                 if (data && Array.isArray(data.transactions)) {
+                    const cloudTs = Number(data.updatedAt || 0);
+                    // Jika data lokal baru saja diubah dalam 8 detik terakhir dan cloud belum terupdate, jangan timpa data lokal
+                    if (lastSyncTs > 0 && (Date.now() - lastSyncTs < 8000) && cloudTs < lastSyncTs) {
+                        return;
+                    }
+
                     transactions = data.transactions.sort((a, b) => b.id - a.id);
                     if (Array.isArray(data.contacts) && data.contacts.length > 0) {
                         contacts = data.contacts;
                     }
                     
-                    if (typeof data.baseCash === 'number') baseCash = data.baseCash;
-                    if (typeof data.baseSetor === 'number') baseSetor = data.baseSetor;
+                    if (typeof data.baseCash === 'number' && !isNaN(data.baseCash)) baseCash = data.baseCash;
+                    if (typeof data.baseSetor === 'number' && !isNaN(data.baseSetor)) baseSetor = data.baseSetor;
 
                     saveAllState();
                     recalculateBalances();
