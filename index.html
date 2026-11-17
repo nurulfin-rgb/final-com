@@ -1574,41 +1574,60 @@
             const select = document.getElementById(activeBankSelectId);
             const container = document.getElementById('bankPickerOptions');
             const query = document.getElementById('bankPickerSearch').value.trim().toLocaleLowerCase('id');
-            let htmlOptions = '';
+
+            // Bangun daftar menggunakan DOM API, bukan onclick inline.
+            // Ini mencegah tanda kutip pada nama bank merusak atribut klik.
+            container.replaceChildren();
             let visibleCount = 0;
+
+            const addBankButton = (option) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'w-full text-left px-2 py-3.5 border-b border-slate-100 text-sm ' +
+                    (select.value === option.value ? 'font-bold text-blue-700 bg-blue-50' : 'text-slate-800');
+                button.textContent = option.textContent.trim();
+                button.addEventListener('click', () => chooseBankOption(option.value));
+                container.appendChild(button);
+                visibleCount++;
+            };
 
             [...select.children].forEach(child => {
                 if (child.tagName === 'OPTION') {
-                    if (!child.value) return;
-                    if (child.textContent.toLocaleLowerCase('id').includes(query)) {
-                        visibleCount++;
-                        const selected = select.value === child.value;
-                        htmlOptions += `<button type="button" onclick="chooseBankOption(${JSON.stringify(child.value).replace(/</g, '\\u003c')})" class="w-full text-left px-2 py-3.5 border-b border-slate-100 text-sm ${selected ? 'font-bold text-blue-700 bg-blue-50' : 'text-slate-800'}">${child.textContent}</button>`;
+                    if (child.value && child.textContent.toLocaleLowerCase('id').includes(query)) {
+                        addBankButton(child);
                     }
                 } else if (child.tagName === 'OPTGROUP') {
                     const options = [...child.querySelectorAll('option')].filter(option =>
                         option.value && option.textContent.toLocaleLowerCase('id').includes(query)
                     );
+
                     if (options.length) {
-                        htmlOptions += `<div class="pt-3 pb-1 text-[11px] font-extrabold uppercase tracking-wide text-slate-400">${child.label}</div>`;
-                        options.forEach(option => {
-                            visibleCount++;
-                            const selected = select.value === option.value;
-                            const safeValue = JSON.stringify(option.value).replace(/</g, '\\u003c');
-                            htmlOptions += `<button type="button" onclick="chooseBankOption(${safeValue})" class="w-full text-left px-2 py-3.5 border-b border-slate-100 text-sm ${selected ? 'font-bold text-blue-700 bg-blue-50' : 'text-slate-800'}">${option.textContent}</button>`;
-                        });
+                        const heading = document.createElement('div');
+                        heading.className = 'pt-3 pb-1 text-[11px] font-extrabold uppercase tracking-wide text-slate-400';
+                        heading.textContent = child.label;
+                        container.appendChild(heading);
+                        options.forEach(addBankButton);
                     }
                 }
             });
 
-            container.innerHTML = visibleCount ? htmlOptions :
-                '<p class="py-8 text-center text-sm text-slate-400">Bank tidak ditemukan.</p>';
+            if (!visibleCount) {
+                const empty = document.createElement('p');
+                empty.className = 'py-8 text-center text-sm text-slate-400';
+                empty.textContent = 'Bank tidak ditemukan.';
+                container.appendChild(empty);
+            }
         }
 
         function chooseBankOption(value) {
             if (!activeBankSelectId) return;
             const selectId = activeBankSelectId;
             const select = document.getElementById(selectId);
+            if (!select) return;
+
+            const matchingOption = [...select.options].find(option => option.value === value);
+            if (!matchingOption) return;
+
             select.value = value;
             updateBankPickerButton(selectId);
             closeBankPicker();
