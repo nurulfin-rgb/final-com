@@ -325,8 +325,9 @@
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">NAMA BANK</label>
-                            <div class="relative">
-                                <select id="inputBank" class="w-full appearance-none px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-500 transition cursor-pointer">
+                            <div class="relative space-y-1.5">
+                                <input type="search" id="inputBankSearch" oninput="filterBankOptions('inputBankSearch','inputBank')" placeholder="Cari nama bank..." autocomplete="off" class="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-500">
+                                <select id="inputBank" onchange="document.getElementById('inputBankSearch').value='';filterBankOptions('inputBankSearch','inputBank')" class="w-full appearance-none px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-500 transition cursor-pointer">
                                     <option value="">-- Pilih Bank --</option>
                                     <optgroup label="Bank Nasional Utama">
                                         <option value="BANK BRI">BANK BRI</option>
@@ -564,18 +565,73 @@
                 <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
                     <p class="text-[11px] font-bold text-slate-600 uppercase">Tambah Kontak Baru</p>
                     <input type="text" id="contactNameInput" placeholder="Nama Pemilik Rekening" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500">
+                    <input type="search" id="contactBankSearch" oninput="filterBankOptions('contactBankSearch','contactBankInput')" placeholder="Cari nama bank..." autocomplete="off" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-500">
                     <div class="grid grid-cols-2 gap-2">
-                        <select id="contactBankInput" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500">
-                            <option value="BANK BCA">BANK BCA</option>
-                            <option value="BANK BRI">BANK BRI</option>
-                            <option value="BANK BNI">BANK BNI</option>
-                            <option value="BANK MANDIRI">BANK MANDIRI</option>
-                            <option value="BANK BSI">BANK BSI</option>
-                            <option value="BANK JATIM">BANK JATIM</option>
-                            <option value="DANA">DANA</option>
-                            <option value="OVO">OVO</option>
-                            <option value="GOPAY">GOPAY</option>
-                        </select>
+                        <select id="contactBankInput" onchange="document.getElementById('contactBankSearch').value='';filterBankOptions('contactBankSearch','contactBankInput')" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500"><option value="">-- Pilih Bank --</option>
+                                    <optgroup label="Bank Nasional Utama">
+                                        <option value="BANK BRI">BANK BRI</option>
+                                        <option value="BANK BNI">BANK BNI</option>
+                                        <option value="BANK MANDIRI">BANK MANDIRI</option>
+                                        <option value="BANK BCA">BANK BCA</option>
+                                        <option value="BANK BSI (SYARIAH INDONESIA)">BANK BSI (SYARIAH INDONESIA)</option>
+                                        <option value="BANK CIMB NIAGA">BANK CIMB NIAGA</option>
+                                        <option value="BANK DANAMON">BANK DANAMON</option>
+                                        <option value="BANK PERMATA">BANK PERMATA</option>
+                                        <option value="BANK PANIN">BANK PANIN</option>
+                                        <option value="BANK BTN">BANK BTN</option>
+                                        <option value="BANK OCBC NISP">BANK OCBC NISP</option>
+                                        <option value="MAYBANK INDONESIA">MAYBANK INDONESIA</option>
+                                        <option value="BANK MEGA">BANK MEGA</option>
+                                        <option value="BANK SINARMAS">BANK SINARMAS</option>
+                                        <option value="BANK BTPN">BANK BTPN</option>
+                                        <option value="BANK COMMONWEALTH">BANK COMMONWEALTH</option>
+                                        <option value="BANK MUAMALAT">BANK MUAMALAT</option>
+                                        <option value="BANK UOB INDONESIA">BANK UOB INDONESIA</option>
+                                        <option value="BANK DBS INDONESIA">BANK DBS INDONESIA</option>
+                                    </optgroup>
+                                    <optgroup label="Bank Digital / Neo Bank">
+                                        <option value="BANK JAGO">BANK JAGO</option>
+                                        <option value="SEABANK INDONESIA">SEABANK INDONESIA</option>
+                                        <option value="BANK NEO COMMERCE (BYNC)">BANK NEO COMMERCE (BYNC)</option>
+                                        <option value="BLU BY BCA DIGITAL">BLU BY BCA DIGITAL</option>
+                                        <option value="ALLO BANK">ALLO BANK</option>
+                                        <option value="DIGIBANK BY DBS">DIGIBANK BY DBS</option>
+                                        <option value="LINE BANK BY HANA">LINE BANK BY HANA</option>
+                                        <option value="JENIUS (BTPN)">JENIUS (BTPN)</option>
+                                        <option value="BANK ALADIN SYARIAH">BANK ALADIN SYARIAH</option>
+                                        <option value="SUPERBANK">SUPERBANK</option>
+                                    </optgroup>
+                                    <optgroup label="Bank Pembangunan Daerah (BPD)">
+                                        <option value="BANK JATIM">BANK JATIM</option>
+                                        <option value="BANK JATENG">BANK JATENG</option>
+                                        <option value="BANK BJB (JABAR BANTEN)">BANK BJB (JABAR BANTEN)</option>
+                                        <option value="BANK DKI">BANK DKI</option>
+                                        <option value="BANK DIY">BANK DIY</option>
+                                        <option value="BANK SUMUT">BANK SUMUT</option>
+                                        <option value="BANK SUMSEL BABEL">BANK SUMSEL BABEL</option>
+                                        <option value="BANK KALBAR">BANK KALBAR</option>
+                                        <option value="BANK KALTENG">BANK KALTENG</option>
+                                        <option value="BANK KALTIMTARA">BANK KALTIMTARA</option>
+                                        <option value="BANK BALI">BANK BALI</option>
+                                        <option value="BANK NTB SYARIAH">BANK NTB SYARIAH</option>
+                                        <option value="BANK NTT">BANK NTT</option>
+                                        <option value="BANK SULSELBAR">BANK SULSELBAR</option>
+                                        <option value="BANK PAPUA">BANK PAPUA</option>
+                                        <option value="BANK ACEH SYARIAH">BANK ACEH SYARIAH</option>
+                                        <option value="BANK LAMPUNG">BANK LAMPUNG</option>
+                                        <option value="BANK RIAU KEPRI">BANK RIAU KEPRI</option>
+                                    </optgroup>
+                                    <optgroup label="Dompet Digital / E-Wallet">
+                                        <option value="DANA">DANA</option>
+                                        <option value="OVO">OVO</option>
+                                        <option value="GOPAY">GOPAY</option>
+                                        <option value="SHOPEEPAY">SHOPEEPAY</option>
+                                        <option value="LINKAJA">LINKAJA</option>
+                                        <option value="I-SAKU">I-SAKU</option>
+                                    </optgroup>
+                                    <optgroup label="Lainnya">
+                                        <option value="LAINNYA / LAIN-LAIN">LAINNYA / LAIN-LAIN</option>
+                                    </optgroup></select>
                         <input type="text" id="contactRekInput" placeholder="Nomor Rekening / HP" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500">
                     </div>
                     <button onclick="addNewContact()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition">
@@ -857,6 +913,8 @@
             document.getElementById('contactSearchBox').value = '';
             document.getElementById('inputPenerima').value = '';
             document.getElementById('inputBank').value = '';
+            document.getElementById('inputBankSearch').value = '';
+            filterBankOptions('inputBankSearch', 'inputBank');
             document.getElementById('inputRekening').value = '';
             document.getElementById('selectPengirim').value = 'AHMAD NURUL ARIFIN';
             document.getElementById('inputCatatan').value = '';
@@ -1475,6 +1533,27 @@
                     </button>
                 </div>
             `).join('');
+        }
+
+        // Pencarian bank digunakan bersama pada form transaksi dan penyimpanan kontak.
+        function filterBankOptions(searchId, selectId) {
+            const search = document.getElementById(searchId);
+            const select = document.getElementById(selectId);
+            if (!search || !select) return;
+
+            const query = search.value.trim().toLocaleLowerCase('id');
+            [...select.options].forEach(option => {
+                if (!option.value) {
+                    option.hidden = false;
+                    return;
+                }
+                option.hidden = !option.textContent.toLocaleLowerCase('id').includes(query);
+            });
+
+            [...select.querySelectorAll('optgroup')].forEach(group => {
+                const visibleOption = [...group.querySelectorAll('option')].some(option => !option.hidden);
+                group.hidden = !visibleOption;
+            });
         }
 
         async function addNewContact() {
