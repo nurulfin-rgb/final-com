@@ -326,7 +326,7 @@
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">NAMA BANK</label>
                             <div class="relative space-y-1.5">
-                                <input type="search" id="inputBankSearch" oninput="filterBankOptions('inputBankSearch','inputBank')" placeholder="Cari nama bank..." autocomplete="off" class="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-500">
+
                                 <select id="inputBank" onchange="document.getElementById('inputBankSearch').value='';filterBankOptions('inputBankSearch','inputBank')" class="w-full appearance-none px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-500 transition cursor-pointer">
                                     <option value="">-- Pilih Bank --</option>
                                     <optgroup label="Bank Nasional Utama">
@@ -394,6 +394,7 @@
                                         <option value="LAINNYA / LAIN-LAIN">LAINNYA / LAIN-LAIN</option>
                                     </optgroup>
                                 </select>
+                                <input type="search" id="inputBankSearch" oninput="filterBankOptions('inputBankSearch','inputBank')" placeholder="Cari nama bank..." autocomplete="off" class="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-500">
                                 <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-500">
                                     <i class="fa-solid fa-chevron-down text-[10px]"></i>
                                 </span>
@@ -565,7 +566,7 @@
                 <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
                     <p class="text-[11px] font-bold text-slate-600 uppercase">Tambah Kontak Baru</p>
                     <input type="text" id="contactNameInput" placeholder="Nama Pemilik Rekening" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500">
-                    <input type="search" id="contactBankSearch" oninput="filterBankOptions('contactBankSearch','contactBankInput')" placeholder="Cari nama bank..." autocomplete="off" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-500">
+
                     <div class="grid grid-cols-2 gap-2">
                         <select id="contactBankInput" onchange="document.getElementById('contactBankSearch').value='';filterBankOptions('contactBankSearch','contactBankInput')" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500"><option value="">-- Pilih Bank --</option>
                                     <optgroup label="Bank Nasional Utama">
@@ -634,6 +635,7 @@
                                     </optgroup></select>
                         <input type="text" id="contactRekInput" placeholder="Nomor Rekening / HP" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500">
                     </div>
+                    <input type="search" id="contactBankSearch" oninput="filterBankOptions('contactBankSearch','contactBankInput')" placeholder="Cari nama bank..." autocomplete="off" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-500">
                     <button onclick="addNewContact()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition">
                         + Simpan Kontak
                     </button>
@@ -1580,6 +1582,8 @@
 
             nameInput.value = '';
             rekInput.value = '';
+            document.getElementById('contactBankSearch').value = '';
+            filterBankOptions('contactBankSearch', 'contactBankInput');
             saveAllState();
             renderSavedContacts();
             
