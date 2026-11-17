@@ -760,6 +760,35 @@
             }
         }
 
+        function transactionMergeKey(trx) {
+            if (trx && trx.id !== undefined && trx.id !== null && String(trx.id) !== '') {
+                return `id:${String(trx.id)}`;
+            }
+            if (trx && trx.processId) return `process:${String(trx.processId)}`;
+            return `fallback:${String(trx?.date || '')}|${String(trx?.tipe || '')}|${String(trx?.nominal || '')}|${String(trx?.pengirim || '')}|${String(trx?.rekening || '')}`;
+        }
+
+        function mergeTransactionsWithoutLoss(localList, cloudList) {
+            const merged = new Map();
+
+            // Data lokal dimasukkan terlebih dahulu, lalu data cloud.
+            // Untuk ID yang sama, data cloud yang lebih baru boleh memperbarui detail,
+            // tetapi transaksi dengan ID berbeda tidak pernah saling menghapus.
+            [...localList, ...cloudList].forEach(trx => {
+                if (!trx || typeof trx !== 'object') return;
+                const key = transactionMergeKey(trx);
+                const previous = merged.get(key);
+                merged.set(key, previous ? { ...previous, ...trx } : { ...trx });
+            });
+
+            return [...merged.values()].sort((a, b) => {
+                const aId = Number(a.id) || 0;
+                const bId = Number(b.id) || 0;
+                if (aId !== bId) return bId - aId;
+                return String(b.date || '').localeCompare(String(a.date || ''));
+            });
+        }
+
         async function fetchDataFromGoogleSheets(isBackground = false) {
             const msgBox = document.getElementById('syncStatusMsg');
             if (!appsScriptUrl) return;
@@ -780,7 +809,13 @@
                         return;
                     }
 
-                    transactions = data.transactions.sort((a, b) => b.id - a.id);
+                    // Jangan menimpa data lokal dengan isi cloud secara langsung.
+                    // Gabungkan berdasarkan ID agar transaksi tanggal sebelumnya tetap tersimpan
+                    // walaupun data cloud yang diterima lebih baru atau belum lengkap.
+                    const localTransactions = Array.isArray(transactions) ? transactions : [];
+                    const cloudTransactions = Array.isArray(data.transactions) ? data.transactions : [];
+                    transactions = mergeTransactionsWithoutLoss(localTransactions, cloudTransactions);
+
                     if (Array.isArray(data.contacts) && data.contacts.length > 0) {
                         contacts = data.contacts;
                     }
@@ -790,8 +825,14 @@
 
                     saveAllState();
                     recalculateBalances();
+                    populatePeriodYears();
                     renderTable();
                     renderSavedContacts();
+
+                    // Kirim gabungan kembali agar data lokal yang belum ada di cloud ikut tersimpan.
+                    if (localTransactions.length > 0 && transactions.length >= localTransactions.length) {
+                        await sendToGoogleSheets();
+                    }
 
                     if (!isBackground && msgBox) {
                         msgBox.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 block';
@@ -940,6 +981,7 @@
             transactions.unshift(newTrx);
             saveAllState();
             recalculateBalances();
+            populatePeriodYears();
             renderTable();
             renderSavedContacts();
             closeModal('transactionModal');
@@ -1031,6 +1073,7 @@
             transactions.unshift(newTrx);
             saveAllState();
             recalculateBalances();
+            populatePeriodYears();
             renderTable();
             renderSavedContacts();
             closeModal('transactionModal');
