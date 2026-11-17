@@ -820,6 +820,20 @@
             if (appsScriptUrl) fetchDataFromGoogleSheets(false);
         }
 
+        async function sendContactActionToCloud(action, contact) {
+            if (!appsScriptUrl || !contact) return;
+            try {
+                await fetch(appsScriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: action, contact: contact })
+                });
+            } catch (err) {
+                console.error('Gagal menyinkronkan perubahan kontak:', err);
+            }
+        }
+
         async function sendToGoogleSheets() {
             if (!appsScriptUrl) return;
             lastSyncTs = Date.now();
@@ -1173,6 +1187,8 @@
             // Kontak dengan nama saja tetap dicatat; rekening/bank yang sama tidak dibuat ganda.
             if (!isTarik && !isSamsat && (penerima !== 'PELANGGAN UMUM' || rekening)) {
                 upsertSavedContact(penerima, bank, rekening);
+                const savedContact = contacts.find(c => contactMergeKey(c) === contactMergeKey({ name: penerima, bank, rek: rekening }));
+                if (savedContact) await sendContactActionToCloud('CONTACT_UPSERT', savedContact);
             }
 
             const now = new Date();
@@ -1750,6 +1766,8 @@
             }
 
             upsertSavedContact(name, bank, rek);
+            const savedContact = contacts.find(c => contactMergeKey(c) === contactMergeKey({ name, bank, rek }));
+            if (savedContact) await sendContactActionToCloud('CONTACT_UPSERT', savedContact);
 
             saveAllState();
             renderSavedContacts();
@@ -1763,11 +1781,13 @@
         }
 
         async function deleteContact(id) {
-            contacts = contacts.filter(c => c.id !== id);
+            const deletedContact = contacts.find(c => String(c.id) === String(id));
+            contacts = contacts.filter(c => String(c.id) !== String(id));
             saveAllState();
             renderSavedContacts();
-            
-            // Wajib panggil sendToGoogleSheets agar perubahan kontak terhapus di cloud
+
+            // Tandai penghapusan di cloud agar tidak dipulihkan oleh perangkat lama.
+            if (deletedContact) await sendContactActionToCloud('CONTACT_DELETE', deletedContact);
             await sendToGoogleSheets();
         }
 
