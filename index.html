@@ -853,16 +853,87 @@
             }
         }
 
+        // Kontak selalu digabung, bukan ditimpa, agar data lokal/cloud tidak hilang.
+        function normalizeContactPart(value) {
+            return String(value ?? '').trim().toLocaleUpperCase('id');
+        }
+
+        function contactMergeKey(contact) {
+            const bank = normalizeContactPart(contact?.bank);
+            const rek = String(contact?.rek ?? '').replace(/\s+/g, '').toLocaleUpperCase('id');
+            const name = normalizeContactPart(contact?.name);
+            // Nomor rekening + bank adalah identitas utama. Jika rekening kosong,
+            // gunakan nama + bank agar kontak tanpa nomor rekening tetap dapat disimpan.
+            return rek ? `rek:${bank}|${rek}` : `name:${bank}|${name}`;
+        }
+
+        function mergeContactsWithoutLoss(localList, cloudList) {
+            const merged = new Map();
+
+            // Cloud melengkapi data yang belum ada; data lokal menang jika identitas sama.
+            [...(Array.isArray(cloudList) ? cloudList : []),
+              ...(Array.isArray(localList) ? localList : [])].forEach(contact => {
+                if (!contact || typeof contact !== 'object') return;
+                const normalized = {
+                    ...contact,
+                    id: contact.id ?? Date.now() + Math.floor(Math.random() * 10000),
+                    name: normalizeContactPart(contact.name),
+                    bank: normalizeContactPart(contact.bank) || 'TUNAI',
+                    rek: String(contact.rek ?? '').trim()
+                };
+                if (!normalized.name && !normalized.rek) return;
+                const key = contactMergeKey(normalized);
+                const previous = merged.get(key);
+                merged.set(key, previous ? { ...previous, ...normalized, id: previous.id ?? normalized.id } : normalized);
+            });
+
+            return [...merged.values()];
+        }
+
+        function upsertSavedContact(nameValue, bankValue, rekValue) {
+            const name = normalizeContactPart(nameValue);
+            const bank = normalizeContactPart(bankValue) || 'TUNAI';
+            const rek = String(rekValue ?? '').trim();
+            if (!name && !rek) return false;
+
+            const candidate = { name: name || 'PELANGGAN UMUM', bank, rek };
+            const key = contactMergeKey(candidate);
+            const existingIndex = contacts.findIndex(contact => contactMergeKey(contact) === key);
+
+            if (existingIndex >= 0) {
+                const existing = contacts[existingIndex];
+                contacts[existingIndex] = {
+                    ...existing,
+                    name: name || existing.name || 'PELANGGAN UMUM',
+                    bank,
+                    rek: rek || existing.rek || ''
+                };
+                return false;
+            }
+
+            let id = Date.now();
+            while (contacts.some(contact => String(contact.id) === String(id))) id++;
+            contacts.unshift({ id, ...candidate });
+            return true;
+        }
+
         async function fetchContactsOnlyFromCloud() {
             if (!appsScriptUrl) return;
             try {
                 const cacheBuster = (appsScriptUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
                 const response = await fetch(appsScriptUrl + cacheBuster, { cache: 'no-store' });
                 const data = await response.json();
-                if (data && Array.isArray(data.contacts) && data.contacts.length > 0) {
-                    contacts = data.contacts;
-                    localStorage.setItem(STORAGE_KEYS.CONTACTS, JSON.stringify(contacts));
+
+                if (data && Array.isArray(data.contacts)) {
+                    const cloudContacts = data.contacts;
+                    contacts = mergeContactsWithoutLoss(contacts, cloudContacts);
+                    saveAllState();
                     renderSavedContacts();
+
+                    // Jika gabungan lokal lebih lengkap, kirim kembali snapshot lengkap ke cloud.
+                    if (contacts.length > cloudContacts.length) {
+                        await sendToGoogleSheets();
+                    }
                 }
             } catch (err) {
                 console.error("Gagal mengambil kontak:", err);
@@ -925,9 +996,11 @@
                     const cloudTransactions = Array.isArray(data.transactions) ? data.transactions : [];
                     transactions = mergeTransactionsWithoutLoss(localTransactions, cloudTransactions);
 
-                    if (Array.isArray(data.contacts) && data.contacts.length > 0) {
-                        contacts = data.contacts;
+                    const cloudContacts = Array.isArray(data.contacts) ? data.contacts : [];
+                    if (Array.isArray(data.contacts)) {
+                        contacts = mergeContactsWithoutLoss(contacts, cloudContacts);
                     }
+                    const hasContactsMissingInCloud = contacts.length > cloudContacts.length;
                     
                     if (typeof data.baseCash === 'number' && !isNaN(data.baseCash)) baseCash = data.baseCash;
                     if (typeof data.baseSetor === 'number' && !isNaN(data.baseSetor)) baseSetor = data.baseSetor;
@@ -939,7 +1012,8 @@
                     renderSavedContacts();
 
                     // Kirim gabungan kembali agar data lokal yang belum ada di cloud ikut tersimpan.
-                    if (localTransactions.length > 0 && transactions.length >= localTransactions.length) {
+                    if ((localTransactions.length > 0 && transactions.length >= localTransactions.length) ||
+                        hasContactsMissingInCloud) {
                         await sendToGoogleSheets();
                     }
 
@@ -1059,7 +1133,7 @@
             return res;
         }
 
-        function submitNewTransaction() {
+        async function submitNewTransaction() {
             const tipe = document.getElementById('selectTipe').value;
             const pengirim = document.getElementById('selectPengirim').value;
             const isTarik = tipe === 'TARIK TUNAI';
@@ -1095,16 +1169,10 @@
 
             valBox.classList.add('hidden');
 
-            if (!isTarik && !isSamsat && rekening && penerima && penerima !== 'PELANGGAN UMUM') {
-                const existingContact = contacts.find(c => c.rek === rekening && c.bank === bank);
-                if (!existingContact) {
-                    contacts.unshift({
-                        id: Date.now(),
-                        name: penerima,
-                        bank: bank,
-                        rek: rekening
-                    });
-                }
+            // Setiap transaksi SETOR TUNAI menyimpan data penerima ke Kontak.
+            // Kontak dengan nama saja tetap dicatat; rekening/bank yang sama tidak dibuat ganda.
+            if (!isTarik && !isSamsat && (penerima !== 'PELANGGAN UMUM' || rekening)) {
+                upsertSavedContact(penerima, bank, rekening);
             }
 
             const now = new Date();
@@ -1133,7 +1201,8 @@
             renderSavedContacts();
             closeModal('transactionModal');
             
-            sendToGoogleSheets(newTrx);
+            // Simpan snapshot transaksi + seluruh kontak ke cloud setelah data lokal aman.
+            await sendToGoogleSheets();
 
             openReceipt(newTrx.id);
         }
@@ -1564,11 +1633,11 @@
 
             list.innerHTML = contacts.map(c => `
                 <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-bold text-slate-800">${c.name}</p>
-                        <p class="text-[11px] text-slate-500">${c.bank} • ${c.rek}</p>
+                    <div class="min-w-0">
+                        <p class="text-xs font-bold text-slate-800">${String(c.name || 'TANPA NAMA').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}</p>
+                        <p class="text-[11px] text-slate-500">${String(c.bank || 'TUNAI').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))} • ${String(c.rek || '-').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}</p>
                     </div>
-                    <button onclick="deleteContact(${c.id})" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition" title="Hapus Kontak">
+                    <button onclick="deleteContact(${JSON.stringify(c.id)})" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition" title="Hapus Kontak">
                         <i class="fa-solid fa-trash-can text-xs"></i>
                     </button>
                 </div>
@@ -1675,26 +1744,21 @@
             const bank = bankInput.value;
             const rek = rekInput.value.trim();
 
-            if (!name || !rek) return;
-
-            // Cek apakah kontak sudah ada untuk menghindari duplikat
-            const exists = contacts.some(c => c.rek === rek && c.bank === bank);
-            if (!exists) {
-                contacts.unshift({
-                    id: Date.now(),
-                    name,
-                    bank,
-                    rek
-                });
+            if (!name || !rek) {
+                alert('Nama pemilik dan nomor rekening / HP wajib diisi.');
+                return;
             }
 
-            nameInput.value = '';
-            rekInput.value = '';
-            updateBankPickerButton('contactBankInput');
+            upsertSavedContact(name, bank, rek);
+
             saveAllState();
             renderSavedContacts();
-            
-            // Wajib panggil sendToGoogleSheets agar data kontak langsung tersimpan ke cloud
+            nameInput.value = '';
+            rekInput.value = '';
+            bankInput.value = '';
+            updateBankPickerButton('contactBankInput');
+
+            // Kontak sudah tersimpan di perangkat; sinkronisasi cloud menyusul.
             await sendToGoogleSheets();
         }
 
