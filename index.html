@@ -176,7 +176,45 @@
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-2 w-full sm:w-auto">
+                <div class="w-full space-y-3">
+                    <!-- Filter Periode Riwayat Transaksi -->
+                    <div class="grid grid-cols-2 md:grid-cols-6 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                        <div>
+                            <label for="filterBulan" class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Bulan</label>
+                            <select id="filterBulan" onchange="renderTable()" class="w-full px-2.5 py-2 text-xs bg-white border border-slate-200 rounded-lg font-semibold text-slate-700">
+                                <option value="ALL">Semua Bulan</option>
+                                <option value="0">Januari</option><option value="1">Februari</option>
+                                <option value="2">Maret</option><option value="3">April</option>
+                                <option value="4">Mei</option><option value="5">Juni</option>
+                                <option value="6">Juli</option><option value="7">Agustus</option>
+                                <option value="8">September</option><option value="9">Oktober</option>
+                                <option value="10">November</option><option value="11">Desember</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="filterTahun" class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tahun</label>
+                            <select id="filterTahun" onchange="renderTable()" class="w-full px-2.5 py-2 text-xs bg-white border border-slate-200 rounded-lg font-semibold text-slate-700">
+                                <option value="ALL">Semua Tahun</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="filterTanggalMulai" class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dari Tanggal</label>
+                            <input type="date" id="filterTanggalMulai" onchange="renderTable()" class="w-full min-w-0 px-2 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-700">
+                        </div>
+                        <div>
+                            <label for="filterTanggalAkhir" class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sampai Tanggal</label>
+                            <input type="date" id="filterTanggalAkhir" onchange="renderTable()" class="w-full min-w-0 px-2 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-700">
+                        </div>
+                        <div class="col-span-2 flex items-end gap-2">
+                            <button type="button" onclick="applyPeriodFilter()" class="flex-1 px-3 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition">
+                                <i class="fa-solid fa-filter mr-1"></i> Terapkan
+                            </button>
+                            <button type="button" onclick="resetPeriodFilter()" class="px-3 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 rounded-lg transition">
+                                <i class="fa-solid fa-rotate-left mr-1"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-center gap-2 w-full">
                     <div class="relative flex-1 sm:w-64">
                         <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                             <i class="fa-solid fa-magnifying-glass text-xs"></i>
@@ -188,6 +226,7 @@
                         <option value="SETOR TUNAI">Setor Tunai</option>
                         <option value="TARIK TUNAI">Tarik Tunai</option>
                     </select>
+                    </div>
                 </div>
             </div>
 
@@ -651,6 +690,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             applyPrivacyUI();
             recalculateBalances();
+            populatePeriodYears();
             renderTable();
             renderSavedContacts();
             document.getElementById('inputAppsScriptUrl').value = appsScriptUrl;
@@ -1023,9 +1063,57 @@
             await sendToGoogleSheets();
         }
 
+        // Filter periode riwayat transaksi: bulan, tahun, dan rentang tanggal.
+        function parseTransactionDate(dateText) {
+            if (!dateText) return null;
+            const match = String(dateText).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+            if (!match) return null;
+            const date = new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+            date.setHours(0, 0, 0, 0);
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+
+        function populatePeriodYears() {
+            const yearSelect = document.getElementById('filterTahun');
+            if (!yearSelect) return;
+            const selectedYear = yearSelect.value || 'ALL';
+            const years = [...new Set(transactions
+                .map(t => parseTransactionDate(t.date))
+                .filter(Boolean)
+                .map(d => d.getFullYear()))]
+                .sort((a, b) => b - a);
+            const currentYear = new Date().getFullYear();
+            if (!years.includes(currentYear)) years.unshift(currentYear);
+            yearSelect.innerHTML = '<option value="ALL">Semua Tahun</option>' +
+                years.map(year => `<option value="${year}">${year}</option>`).join('');
+            yearSelect.value = years.includes(Number(selectedYear)) ? selectedYear : 'ALL';
+        }
+
+        function applyPeriodFilter() {
+            const start = document.getElementById('filterTanggalMulai').value;
+            const end = document.getElementById('filterTanggalAkhir').value;
+            if (start && end && start > end) {
+                alert('Tanggal awal tidak boleh melewati tanggal akhir.');
+                return;
+            }
+            renderTable();
+        }
+
+        function resetPeriodFilter() {
+            document.getElementById('filterBulan').value = 'ALL';
+            document.getElementById('filterTahun').value = 'ALL';
+            document.getElementById('filterTanggalMulai').value = '';
+            document.getElementById('filterTanggalAkhir').value = '';
+            renderTable();
+        }
+
         function renderTable() {
             const query = document.getElementById('searchInput').value.toLowerCase();
             const filterTipe = document.getElementById('filterTipe').value;
+            const filterBulan = document.getElementById('filterBulan').value;
+            const filterTahun = document.getElementById('filterTahun').value;
+            const tanggalMulai = document.getElementById('filterTanggalMulai').value;
+            const tanggalAkhir = document.getElementById('filterTanggalAkhir').value;
             const tbody = document.getElementById('transactionTableBody');
             const emptyState = document.getElementById('emptyState');
 
@@ -1045,7 +1133,17 @@
                     (t.catatan && t.catatan.toLowerCase().includes(query));
                 
                 const matchTipe = (filterTipe === 'ALL' || t.tipe === filterTipe);
-                return matchQuery && matchTipe;
+                const trxDate = parseTransactionDate(t.date);
+                const matchBulan = filterBulan === 'ALL' || (trxDate && trxDate.getMonth() === Number(filterBulan));
+                const matchTahun = filterTahun === 'ALL' || (trxDate && trxDate.getFullYear() === Number(filterTahun));
+                const trxISO = trxDate ? [
+                    trxDate.getFullYear(),
+                    String(trxDate.getMonth() + 1).padStart(2, '0'),
+                    String(trxDate.getDate()).padStart(2, '0')
+                ].join('-') : '';
+                const matchTanggalMulai = !tanggalMulai || (trxISO && trxISO >= tanggalMulai);
+                const matchTanggalAkhir = !tanggalAkhir || (trxISO && trxISO <= tanggalAkhir);
+                return matchQuery && matchTipe && matchBulan && matchTahun && matchTanggalMulai && matchTanggalAkhir;
             });
 
             if (filtered.length === 0) {
