@@ -859,6 +859,18 @@
             }
         }
 
+        // Sinkronisasi berjalan di latar belakang agar struk tidak menunggu jaringan.
+        async function syncTransactionInBackground(contactToUpsert) {
+            try {
+                if (contactToUpsert) {
+                    await sendContactActionToCloud('CONTACT_UPSERT', contactToUpsert);
+                }
+                await sendToGoogleSheets();
+            } catch (err) {
+                console.error('Sinkronisasi transaksi tertunda; data lokal tetap tersimpan:', err);
+            }
+        }
+
         // Modal Controls
         function openModal(id) {
             document.getElementById(id).classList.remove('hidden');
@@ -1185,10 +1197,10 @@
 
             // Setiap transaksi SETOR TUNAI menyimpan data penerima ke Kontak.
             // Kontak dengan nama saja tetap dicatat; rekening/bank yang sama tidak dibuat ganda.
+            let contactForCloudSync = null;
             if (!isTarik && !isSamsat && (penerima !== 'PELANGGAN UMUM' || rekening)) {
                 upsertSavedContact(penerima, bank, rekening);
-                const savedContact = contacts.find(c => contactMergeKey(c) === contactMergeKey({ name: penerima, bank, rek: rekening }));
-                if (savedContact) await sendContactActionToCloud('CONTACT_UPSERT', savedContact);
+                contactForCloudSync = contacts.find(c => contactMergeKey(c) === contactMergeKey({ name: penerima, bank, rek: rekening })) || null;
             }
 
             const now = new Date();
@@ -1217,10 +1229,10 @@
             renderSavedContacts();
             closeModal('transactionModal');
             
-            // Simpan snapshot transaksi + seluruh kontak ke cloud setelah data lokal aman.
-            await sendToGoogleSheets();
-
+            // Tampilkan struk segera setelah penyimpanan lokal berhasil.
+            // Sinkronisasi cloud berjalan di belakang layar dan tidak menahan UI.
             openReceipt(newTrx.id);
+            void syncTransactionInBackground(contactForCloudSync);
         }
 
         // Delete Confirmation Logic
