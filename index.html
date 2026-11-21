@@ -542,6 +542,12 @@
                 <p class="text-sm font-bold text-slate-700">Tidak ada data transaksi</p>
                 <p class="text-xs text-slate-400 mt-1">Klik tombol "+ Transaksi Baru" untuk mulai mencatat keuangan.</p>
             </div>
+
+            <!-- Pagination Riwayat Transaksi -->
+            <div id="transactionPagination" class="hidden border-t border-slate-200 bg-white px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <p id="transactionPageInfo" class="text-[11px] text-slate-500 text-center sm:text-left"></p>
+                <div id="transactionPageButtons" class="flex flex-wrap items-center justify-center gap-1.5"></div>
+            </div>
         </div>
     </main>
 
@@ -1637,7 +1643,65 @@
             renderTable();
         }
 
-        function renderTable() {
+        const TRANSACTIONS_PER_PAGE = 15;
+        let transactionCurrentPage = 1;
+
+        function goToTransactionPage(page) {
+            transactionCurrentPage = Math.max(1, Number(page) || 1);
+            renderTable(false);
+            const historyCard = document.getElementById('transactionPagination');
+            if (historyCard) {
+                const top = historyCard.getBoundingClientRect().top + window.scrollY - 110;
+                window.scrollTo({ top, behavior: 'smooth' });
+            }
+        }
+
+        function renderTransactionPagination(totalItems, totalPages, startIndex, endIndex) {
+            const wrap = document.getElementById('transactionPagination');
+            const info = document.getElementById('transactionPageInfo');
+            const buttons = document.getElementById('transactionPageButtons');
+            if (!wrap || !info || !buttons) return;
+
+            if (totalItems <= TRANSACTIONS_PER_PAGE) {
+                wrap.classList.add('hidden');
+                buttons.innerHTML = '';
+                info.textContent = '';
+                return;
+            }
+
+            wrap.classList.remove('hidden');
+            info.textContent = `Menampilkan ${startIndex + 1}–${endIndex} dari ${totalItems.toLocaleString('id-ID')} transaksi · Halaman ${transactionCurrentPage} dari ${totalPages}`;
+
+            const buttonBase = 'min-w-9 h-9 px-3 rounded-lg border text-xs font-bold transition';
+            const disabledClass = ' opacity-40 cursor-not-allowed bg-slate-50 text-slate-400 border-slate-200';
+            const normalClass = ' bg-white text-slate-600 border-slate-200 hover:bg-blue-50 hover:border-blue-200';
+            const activeClass = ' bg-blue-600 text-white border-blue-600 shadow-sm';
+            let pageList = [];
+
+            if (totalPages <= 7) {
+                pageList = Array.from({ length: totalPages }, (_, i) => i + 1);
+            } else {
+                pageList = [1];
+                const first = Math.max(2, transactionCurrentPage - 1);
+                const last = Math.min(totalPages - 1, transactionCurrentPage + 1);
+                if (first > 2) pageList.push('...');
+                for (let p = first; p <= last; p++) pageList.push(p);
+                if (last < totalPages - 1) pageList.push('...');
+                pageList.push(totalPages);
+            }
+
+            const prevDisabled = transactionCurrentPage <= 1;
+            const nextDisabled = transactionCurrentPage >= totalPages;
+            buttons.innerHTML =
+                `<button type="button" ${prevDisabled ? 'disabled' : `onclick="goToTransactionPage(${transactionCurrentPage - 1})"`} class="${buttonBase}${prevDisabled ? disabledClass : normalClass}" aria-label="Halaman sebelumnya">‹ Sebelumnya</button>` +
+                pageList.map(p => p === '...'
+                    ? `<span class="px-1 text-xs text-slate-400">…</span>`
+                    : `<button type="button" onclick="goToTransactionPage(${p})" ${p === transactionCurrentPage ? 'aria-current="page"' : ''} class="${buttonBase}${p === transactionCurrentPage ? activeClass : normalClass}">${p}</button>`
+                ).join('') +
+                `<button type="button" ${nextDisabled ? 'disabled' : `onclick="goToTransactionPage(${transactionCurrentPage + 1})"`} class="${buttonBase}${nextDisabled ? disabledClass : normalClass}" aria-label="Halaman berikutnya">Berikutnya ›</button>`;
+        }
+
+        function renderTable(resetPage = true) {
             const query = document.getElementById('searchInput').value.toLowerCase();
             const filterTipe = document.getElementById('filterTipe').value;
             const filterBulan = document.getElementById('filterBulan').value;
@@ -1676,14 +1740,27 @@
                 return matchQuery && matchTipe && matchBulan && matchTahun && matchTanggalMulai && matchTanggalAkhir;
             });
 
+            const totalPages = Math.max(1, Math.ceil(filtered.length / TRANSACTIONS_PER_PAGE));
+            if (resetPage) transactionCurrentPage = 1;
+            transactionCurrentPage = Math.min(transactionCurrentPage, totalPages);
+
             if (filtered.length === 0) {
                 tbody.innerHTML = '';
                 emptyState.classList.remove('hidden');
+                renderTransactionPagination(0, 1, 0, 0);
                 return;
             }
 
             emptyState.classList.add('hidden');
-            tbody.innerHTML = filtered.map(t => {
+            const startIndex = (transactionCurrentPage - 1) * TRANSACTIONS_PER_PAGE;
+            const pageTransactions = filtered.slice(startIndex, startIndex + TRANSACTIONS_PER_PAGE);
+            renderTransactionPagination(
+                filtered.length,
+                totalPages,
+                startIndex,
+                Math.min(startIndex + TRANSACTIONS_PER_PAGE, filtered.length)
+            );
+            tbody.innerHTML = pageTransactions.map(t => {
                 const isSetor = t.tipe === 'SETOR TUNAI' || t.tipe === 'SAMSAT ONLINE';
                 const badgeClass = isSetor 
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
