@@ -1005,7 +1005,22 @@
                 </div>
 
                 <div>
-                    <p class="text-xs font-bold text-slate-800 mb-2">Daftar Kontak (<span id="contactCount">0</span>)</p>
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <p class="text-xs font-bold text-slate-800">Daftar Kontak (<span id="contactCount">0</span>)</p>
+                        <span id="contactSearchResultCount" class="text-[10px] text-slate-400"></span>
+                    </div>
+                    <div class="relative mb-2.5">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                        <input
+                            type="search"
+                            id="savedContactSearchInput"
+                            oninput="filterSavedContacts()"
+                            placeholder="Cari nama, bank, atau nomor rekening..."
+                            autocomplete="off"
+                            class="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition"
+                            aria-label="Cari kontak tersimpan"
+                        >
+                    </div>
                     <div id="savedContactsList" class="space-y-2 max-h-52 overflow-y-auto pr-1">
                         <!-- Rendered via JS -->
                     </div>
@@ -2087,27 +2102,58 @@
         }
 
         // Contacts Management Logic
+        function filterSavedContacts() {
+            renderSavedContacts();
+        }
+
         function renderSavedContacts() {
             const list = document.getElementById('savedContactsList');
             const countEl = document.getElementById('contactCount');
-            countEl.innerText = contacts.length;
+            const searchEl = document.getElementById('savedContactSearchInput');
+            const resultCountEl = document.getElementById('contactSearchResultCount');
+            if (!list || !countEl) return;
 
-            if (contacts.length === 0) {
-                list.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Belum ada kontak tersimpan.</p>`;
+            const query = String(searchEl ? searchEl.value : '').trim().toLocaleLowerCase('id-ID');
+            const filteredContacts = contacts.filter(c => {
+                const searchable = [
+                    c.name || '',
+                    c.bank || 'TUNAI',
+                    c.rek || ''
+                ].join(' ').toLocaleLowerCase('id-ID');
+                return !query || searchable.includes(query);
+            });
+
+            countEl.innerText = contacts.length.toLocaleString('id-ID');
+            if (resultCountEl) {
+                resultCountEl.textContent = query
+                    ? `${filteredContacts.length.toLocaleString('id-ID')} ditemukan`
+                    : `${contacts.length.toLocaleString('id-ID')} kontak`;
+            }
+
+            if (filteredContacts.length === 0) {
+                list.innerHTML = query
+                    ? `<p class="text-xs text-slate-400 text-center py-5">Kontak dengan kata “${escapeContactHtml(query)}” tidak ditemukan.</p>`
+                    : `<p class="text-xs text-slate-400 text-center py-4">Belum ada kontak tersimpan.</p>`;
                 return;
             }
 
-            list.innerHTML = contacts.map(c => `
-                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-                    <div class="min-w-0">
-                        <p class="text-xs font-bold text-slate-800">${String(c.name || 'TANPA NAMA').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}</p>
-                        <p class="text-[11px] text-slate-500">${String(c.bank || 'TUNAI').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))} • ${String(c.rek || '-').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}</p>
+            list.innerHTML = filteredContacts.map(c => `
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs font-bold text-slate-800 break-words">${escapeContactHtml(c.name || 'TANPA NAMA')}</p>
+                        <p class="text-[11px] text-slate-500 break-all">${escapeContactHtml(c.bank || 'TUNAI')} • ${escapeContactHtml(c.rek || '-')}</p>
                     </div>
-                    <button onclick="deleteContact(${JSON.stringify(c.id)})" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition" title="Hapus Kontak">
+                    <button type="button" onclick="deleteContact(${JSON.stringify(String(c.id))})" class="shrink-0 p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition" title="Hapus Kontak" aria-label="Hapus kontak ${escapeContactHtml(c.name || '')}">
                         <i class="fa-solid fa-trash-can text-xs"></i>
                     </button>
                 </div>
             `).join('');
+        }
+
+        function escapeContactHtml(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[ch]));
         }
 
         // Picker bank bergaya bottom-sheet: pencarian berada di dalam daftar bank.
