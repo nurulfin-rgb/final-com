@@ -1997,13 +1997,22 @@
                 samsatBlock.classList.add('hidden');
                 penerimaBlock.classList.remove('hidden');
                 document.getElementById('rcpPenerima').innerText = `A/N ${trx.penerima || '-'}`;
-                document.getElementById('rcpBank').innerText = `BANK ${trx.bank || '-'}`;
+                document.getElementById('rcpBank').innerText = formatReceiptBankName(trx.bank);
                 document.getElementById('rcpRek').innerText = `REK: ${trx.rekening || '-'}`;
             }
 
             document.getElementById('btNoticeBox').classList.add('hidden');
             updateBluetoothBadge();
             openModal('receiptModal');
+        }
+
+        // Format nama bank untuk struk: awalan BANK hanya ditampilkan satu kali.
+        // Contoh: "BANK BRI" -> "BANK BRI", "DANAMON" -> "BANK DANAMON".
+        function formatReceiptBankName(rawBank) {
+            const bank = String(rawBank || '').trim();
+            if (!bank) return '-';
+            const normalized = bank.toLocaleUpperCase('id-ID');
+            return /^BANK(?:\s|$)/i.test(normalized) ? normalized : `BANK ${normalized}`;
         }
 
         function updateBluetoothBadge() {
@@ -2143,7 +2152,7 @@
             } else {
                 text += 'PENERIMA\n';
                 text += BOLD_ON + `A/N ${(trx.penerima || '-').toUpperCase()}\n` + BOLD_OFF;
-                text += BOLD_ON + `BANK ${(trx.bank || '-').toUpperCase()}\n` + BOLD_OFF;
+                text += BOLD_ON + `${formatReceiptBankName(trx.bank)}\n` + BOLD_OFF;
                 text += `REK: ${trx.rekening || '-'}\n`;
             }
 
