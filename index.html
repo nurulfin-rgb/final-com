@@ -1486,8 +1486,7 @@
             } else {
                 dropdown.innerHTML = matches.map(c => `
                     <button type="button" role="option"
-                        onmousedown="event.preventDefault()"
-                        onclick="selectRecipientNameContact(${JSON.stringify(String(c.id))})"
+                        onpointerdown="event.preventDefault(); selectRecipientNameContact(decodeURIComponent('${encodeURIComponent(String(c.id))}'))"
                         class="w-full text-left px-3.5 py-2.5 hover:bg-blue-50 active:bg-blue-100 transition">
                         <p class="text-xs font-bold text-slate-800">${escapeContactHtml(c.name || '')}</p>
                         <p class="text-[10px] text-slate-500 mt-0.5">${escapeContactHtml(c.bank || 'TUNAI')} • ${escapeContactHtml(c.rek || '-')}</p>
@@ -1495,6 +1494,31 @@
                 `).join('');
             }
             dropdown.classList.remove('hidden');
+        }
+
+        // Cocokkan nama bank dari kontak lama (mis. "BRI", "BCA", "Mandiri")
+        // dengan value pada daftar bank transaksi (mis. "BANK BRI").
+        function resolveContactBankOption(select, rawBank) {
+            if (!select) return '';
+            const raw = String(rawBank || '').trim().toLocaleUpperCase('id-ID');
+            if (!raw || raw === 'TUNAI') return '';
+
+            const compact = value => String(value || '')
+                .trim()
+                .toLocaleUpperCase('id-ID')
+                .replace(/^BANK\s+/, '')
+                .replace(/[^A-Z0-9]/g, '');
+
+            const exact = [...select.options].find(option =>
+                option.value && option.value.toLocaleUpperCase('id-ID') === raw
+            );
+            if (exact) return exact.value;
+
+            const target = compact(raw);
+            const match = [...select.options].find(option =>
+                option.value && compact(option.value) === target
+            );
+            return match ? match.value : '';
         }
 
         function selectRecipientNameContact(id) {
@@ -1505,8 +1529,7 @@
 
             const bankSelect = document.getElementById('inputBank');
             if (bankSelect) {
-                bankSelect.value = contact.bank || '';
-                bankSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                bankSelect.value = resolveContactBankOption(bankSelect, contact.bank);
                 updateBankPickerButton('inputBank');
             }
 
@@ -2176,6 +2199,30 @@
             renderSavedContacts();
         }
 
+        function openTransactionWithContact(id) {
+            const contact = contacts.find(c => String(c.id) === String(id));
+            if (!contact) return;
+
+            // Tutup daftar kontak, buka transaksi baru, lalu isi data kontak terpilih.
+            closeModal('contactModal');
+            openNewTransactionModal();
+
+            document.getElementById('inputPenerima').value = contact.name || '';
+            const bankSelect = document.getElementById('inputBank');
+            if (bankSelect) {
+                bankSelect.value = resolveContactBankOption(bankSelect, contact.bank);
+                updateBankPickerButton('inputBank');
+            }
+            const accountInput = document.getElementById('inputRekening');
+            if (accountInput) accountInput.value = contact.rek || '';
+
+            const contactSearch = document.getElementById('contactSearchBox');
+            if (contactSearch) contactSearch.value = `${contact.name || ''} (${contact.bank || 'TUNAI'})`;
+
+            closeRecipientNameSuggestions();
+            closeContactSuggestions();
+        }
+
         function renderSavedContacts() {
             const list = document.getElementById('savedContactsList');
             const countEl = document.getElementById('contactCount');
@@ -2208,12 +2255,17 @@
             }
 
             list.innerHTML = filteredContacts.map(c => `
-                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2">
+                <div role="button" tabindex="0"
+                    onclick="openTransactionWithContact(decodeURIComponent('${encodeURIComponent(String(c.id))}'))"
+                    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openTransactionWithContact(decodeURIComponent('${encodeURIComponent(String(c.id))}'))}"
+                    class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 cursor-pointer hover:bg-blue-50 hover:border-blue-200 active:bg-blue-100 transition"
+                    title="Klik untuk membuat transaksi dengan kontak ini">
                     <div class="min-w-0 flex-1">
                         <p class="text-xs font-bold text-slate-800 break-words">${escapeContactHtml(c.name || 'TANPA NAMA')}</p>
                         <p class="text-[11px] text-slate-500 break-all">${escapeContactHtml(c.bank || 'TUNAI')} • ${escapeContactHtml(c.rek || '-')}</p>
+                        <p class="text-[10px] text-blue-600 font-semibold mt-1">Pilih untuk transaksi</p>
                     </div>
-                    <button type="button" onclick="deleteContact(${JSON.stringify(String(c.id))})" class="shrink-0 p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition" title="Hapus Kontak" aria-label="Hapus kontak ${escapeContactHtml(c.name || '')}">
+                    <button type="button" onclick="event.stopPropagation(); deleteContact(decodeURIComponent('${encodeURIComponent(String(c.id))}'))" class="shrink-0 p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition" title="Hapus Kontak" aria-label="Hapus kontak ${escapeContactHtml(c.name || '')}">
                         <i class="fa-solid fa-trash-can text-xs"></i>
                     </button>
                 </div>
